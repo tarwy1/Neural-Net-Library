@@ -133,7 +133,12 @@ class NN{
         vector<string> LayerActivationStrings;
         vector<int> LayerActivationNums;
         float maxoutput = 0.0f;
+        float adagradConst = 1e-8;
         int threadNum;
+        float lr;
+        vector<vector<float>> parameterUpdateWeights;
+        vector<float> parameterUpdateBiases;
+
 
         NN(vector<int> _NNL, string _Function, string _CostFunctionStr, string _OptimizerStr, bool init = true){
             if(init == true){
@@ -155,6 +160,8 @@ class NN{
                 else{ std::cout << "Invalid cost function inputted"; return; }
                 if(OptimizerStr=="sgd"){ OptimizerNum = 0; }
                 else if(OptimizerStr=="Msgd"){ OptimizerNum = 1; }
+                else if(OptimizerStr=="adagrad"){ OptimizerNum = 2; }
+                else if(OptimizerStr=="adadelta"){ OptimizerNum = 3; }
                 else{ std::cout << "Invalid optimizer inputted"; return; }
                 for(int i = 0; i < TL; i++){
                     LayerActivationStrings.push_back(Function);
@@ -330,9 +337,51 @@ class NN{
                     }
                 }
             }
+            if(net.OptimizerNum==2){
+                net.adjustRate = net.lr;
+                float update;
+                for(int i = 0; i < net.NNL[0]; i++){
+                    update = net.adjustRate*BiasChanges[i]/sqrt(updateVectorBiases[i]+adagradConst);
+                    net.Nodes[i].bias-= update;
+                    BiasChanges[i] = 0;
+                }
+                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
+                    update = net.adjustRate*BiasChanges[NODE]/sqrt(updateVectorBiases[NODE]+adagradConst);
+                    net.Nodes[NODE].bias -= update;
+                    BiasChanges[NODE] = 0;
+                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
+                        update = net.adjustRate * WeightChanges[NODE][i]/sqrt(net.updateVectorWeights[NODE][i] + adagradConst);
+                        net.Nodes[NODE].inWeights[i] -= update;
+                        WeightChanges[NODE][i] = 0;
+                    }
+                }
+            }
+            if(net.OptimizerNum==3){
+                net.adjustRate = net.lr;
+                float update;
+                for(int i = 0; i < net.NNL[0]; i++){
+                    update = sqrt(net.parameterUpdateBiases[i]+adagradConst)*BiasChanges[i]/sqrt(updateVectorBiases[i]+adagradConst);
+                    net.parameterUpdateBiases[i] = net.momentumConst*net.parameterUpdateBiases[i] + (1-net.momentumConst)*update*update;
+                    net.Nodes[i].bias-= update;
+                    BiasChanges[i] = 0;
+                }
+                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
+                    update = sqrt(net.parameterUpdateBiases[NODE]+adagradConst)*BiasChanges[NODE]/sqrt(updateVectorBiases[NODE]+adagradConst);
+                    net.parameterUpdateBiases[NODE] = net.momentumConst*net.parameterUpdateBiases[NODE] + (1-net.momentumConst)*update*update;
+                    net.Nodes[NODE].bias -= update;
+                    BiasChanges[NODE] = 0;
+                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
+                        update = sqrt(net.parameterUpdateWeights[NODE][i]+adagradConst) * WeightChanges[NODE][i]/sqrt(net.updateVectorWeights[NODE][i] + adagradConst);
+                        net.parameterUpdateWeights[NODE][i] = net.parameterUpdateWeights[NODE][i] * net.momentumConst + (1-net.momentumConst)*update*update;
+                        net.Nodes[NODE].inWeights[i] -= update;
+                        WeightChanges[NODE][i] = 0;
+                    }
+                }
+            }
         }
 
         void Train(NN& net, vector<vector<float>> InData, vector<vector<float>> OutData, int batch, int epochs, float LR){
+            net.lr = LR;
             net.inVal = InData;
             net.outVal = OutData;
             net.DataShuffle(net);
@@ -346,12 +395,12 @@ class NN{
             vector<float> changesBiases;
             for(int NODE = 0; NODE < net.Nodes.size(); NODE++){
                 changesBiases.push_back(0.0f);
-                if(!net.updateVectorsInitialized){net.updateVectorBiases.push_back(0.0f);}
+                if(!net.updateVectorsInitialized){net.updateVectorBiases.push_back(0.0f); net.parameterUpdateBiases.push_back(0.0f);}
                 changesWeights.push_back({});
-                if(!net.updateVectorsInitialized){net.updateVectorWeights.push_back({});}
+                if(!net.updateVectorsInitialized){net.updateVectorWeights.push_back({}); net.parameterUpdateWeights.push_back({});}
                 for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
                     changesWeights[NODE].push_back(0.0f);
-                    if(!net.updateVectorsInitialized){net.updateVectorWeights[NODE].push_back(0.0f);}
+                    if(!net.updateVectorsInitialized){net.updateVectorWeights[NODE].push_back(0.0f);net.parameterUpdateWeights[NODE].push_back(0.0f);}
                 }
             }
             net.updateVectorsInitialized = true;
@@ -391,9 +440,13 @@ class NN{
                         baseDerivatives[NODE] *= DActivation(net1.Nodes[NODE].z, NODE);
                     }
                     changesBiases[NODE] += baseDerivatives[NODE] * BiasMult;
+                    if(net.OptimizerNum==2){ net.updateVectorBiases[NODE] += baseDerivatives[NODE] * BiasMult * baseDerivatives[NODE] * BiasMult; } 
+                    if(net.OptimizerNum==3){ net.updateVectorBiases[NODE] = net.momentumConst * net.updateVectorBiases[NODE] + (1-net.momentumConst)*baseDerivatives[NODE] * BiasMult * baseDerivatives[NODE] * BiasMult;}
                     if(net1.Nodes[NODE].layer>0){
                         for(int i = 0; i < net1.Nodes[NODE].numInNodes; i++){
                             changesWeights[NODE][i] += baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a;
+                            if(net.OptimizerNum==2){ net.updateVectorWeights[NODE][i] += baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a * baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a; } 
+                            if(net.OptimizerNum==3){ net.updateVectorWeights[NODE][i] = net.momentumConst * net.updateVectorWeights[NODE][i] + (1-net.momentumConst) * baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a * baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a;}
                         }
                     }
                 }
@@ -430,12 +483,12 @@ int main(){
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
     mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist-master/mnist-master/");
 
-    NN Network({784, 64, 48, 16, 10}, "LeakyRelu", "binary crossentropy", "Msgd");
+    NN Network({784, 64, 48, 16, 10}, "LeakyRelu", "binary crossentropy", "adadelta");
     Network.UpdateLayerActivation(Network, "Sigmoid", 4);
 
     vector<vector<float>> inData;
     vector<vector<float>> outData;
-    for(int i = 0; i < 50000; i++){
+    for(int i = 0; i < 1000; i++){
         inData.push_back({});
         for(int j = 0; j < 784; j++){
             inData[i].push_back(((float)dataset.training_images[i][j])/255);
