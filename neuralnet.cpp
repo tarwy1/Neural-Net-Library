@@ -83,10 +83,10 @@ class NN{
             return -2 * (intended - x);
         }
         float binarycrossentropy(float x, float intended){
-            return ((intended * log(x)) + ((1-intended) * log(1 - x)));
+            return -intended*log(x+1e-8) - (1-intended) * log(1 - x + 1e-8);
         }
         float Dbinarycrossentropy(float x, float intended){
-            return -((intended/x) + (intended-1)/(1-x));
+            return -intended/(x+1e-8) + (1-intended)/(1-x+1e-8);
         }
         float CostFunction(float x, float intended){
             if(CostFunctionNum==0){ return mse(x, intended); }
@@ -238,7 +238,6 @@ class NN{
             for(int i = 0; i < nod.numInNodes; i++){
                 nod.z += nod.inWeights[i] * net.Nodes[i + nod.inNodes[0]].a;
             }
-            //nod.a = net.Activation(nod.z, nod.id);
         }
 
         void ForwardProp(NN& net){
@@ -251,6 +250,12 @@ class NN{
                     }
                 }
                 net.parrallelActivation(net, net.Nodes[NODE]);
+            }
+            net.maxoutput = 0;
+            for(int i = net.layerStarts[net.TL-1]; i < net.Nodes.size(); i++){
+                if(net.Nodes[i].z>=net.maxoutput){
+                    net.maxoutput = net.Nodes[i].z;
+                }
             }
             for(int i = net.layerStarts[net.TL-1]; i < net.Nodes.size(); i++){
                 net.Nodes[i].a = net.Activation(net.Nodes[i].z, i);
@@ -331,20 +336,14 @@ class NN{
             net.inVal = InData;
             net.outVal = OutData;
             net.DataShuffle(net);
-            float cost = 0;
             float avgcost = 0;
             net.adjustRate = LR/batch;
             int firstOutput = net.Nodes[net.Nodes.size() - 1].inNodes[net.Nodes[net.Nodes.size()-1].inNodes.size() - 1] + 1;
             int numThreads;
             if(threadNum<=batch){ numThreads = threadNum; }
             else{ numThreads = batch; }
-            //numThreads = batch;
             vector<vector<float>> changesWeights;
             vector<float> changesBiases;
-            // vector<float> baseDerivatives;
-            // for(int i = 0; i < net.Nodes.size(); i++){
-            //    baseDerivatives.push_back(0.0f);
-            // }
             for(int NODE = 0; NODE < net.Nodes.size(); NODE++){
                 changesBiases.push_back(0.0f);
                 if(!net.updateVectorsInitialized){net.updateVectorBiases.push_back(0.0f);}
@@ -370,13 +369,19 @@ class NN{
                 net1.loadValue(0, net1);
                 net1.ForwardProp(net1);
                 for(int i = 0; i < net1.outVal[0].size(); i++){
-                    cost += CostFunction(net1.Nodes[firstOutput + i].a, net1.outVal[0][i]);
+                    avgcost += net1.CostFunction(net1.Nodes[firstOutput + i].a, net1.outVal[0][i]);
                 }
-                avgcost+=cost;
-                cost = 0;
                 for(int NODE = net1.Nodes.size()-1; NODE >= 0; NODE--){
                     if(net1.Nodes[NODE].layer==net.TL-1){
-                        baseDerivatives[NODE] = DCostFunction(net1.Nodes[NODE].a, net1.outVal[0][NODE-firstOutput]) * DActivation(net1.Nodes[NODE].z, NODE);
+                        if(net1.LayerActivationNums[net1.TL-1]!=4){
+                            baseDerivatives[NODE] = net1.DCostFunction(net1.Nodes[NODE].a, net1.outVal[0][NODE-firstOutput]) * net1.DActivation(net1.Nodes[NODE].z, NODE);
+                        }
+                        else{
+                            baseDerivatives[NODE] = 0;
+                            for(int i = net1.layerStarts[net1.TL-1]; i < net1.Nodes.size(); i++){
+                                baseDerivatives[NODE] += net1.DCostFunction(net1.Nodes[NODE].a, net1.outVal[0][NODE-firstOutput]) * net1.Softmax(net1.Nodes[i].z, i) * ((i == NODE), net1.Softmax(net1.Nodes[NODE].z, NODE));
+                            }
+                        }
                     }
                     else{
                         baseDerivatives[NODE] = 0;
@@ -406,7 +411,6 @@ class NN{
                     }
                     threads.clear();
 
-
                     if(point/batch>=0 && point > 0){
                         net.UpdateParams(net, changesWeights, changesBiases);
                     }
@@ -426,8 +430,8 @@ int main(){
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
     mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist-master/mnist-master/");
 
-    NN Network({784, 64, 32, 10}, "LeakyRelu", "mse", "Msgd");
-    //Network.UpdateLayerActivation(Network, "Softmax", 3);
+    NN Network({784, 64, 48, 16, 10}, "LeakyRelu", "binary crossentropy", "Msgd");
+    Network.UpdateLayerActivation(Network, "Sigmoid", 4);
 
     vector<vector<float>> inData;
     vector<vector<float>> outData;
@@ -448,13 +452,9 @@ int main(){
     }
     Network.inVal = inData;
     Network.outVal = outData;
-    //hell
-    // for(float i = -10; i < 10; i += 0.001){
-    //     Network.inVal.push_back({i});
-    //     Network.outVal.push_back({Network.Activation(1/abs(i)*sinf(i)*sinf(i))});
-    // }
 
-    Network.Train(Network, Network.inVal, Network.outVal, 32, 20, 0.01f);
+
+    Network.Train(Network, Network.inVal, Network.outVal, 32, 40, 0.01f);
 
     vector<vector<float>> testingData;
     vector<float> testingAnswers;
@@ -468,10 +468,6 @@ int main(){
     float totalRight = 0;
     for(int i = 0; i < 10000; i++){
         vector<float> prediction = Network.predict(Network, testingData[i]);
-        //for(int i = 0; i < 10; i++){
-        //    std::cout << prediction[i] << " ";
-        //}
-        //std::cout << "\n";
         int maxindex = 0;
         for(int i = 0; i < 10; i++){
             if(prediction[i] >prediction[maxindex]){
