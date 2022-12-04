@@ -14,7 +14,7 @@ using namespace std;
 
 class NN{
     public:
-    
+
         float Sigmoid(float x){ return 1/(1+exp(-x)); }
         float DSigmoid(float x){ return Sigmoid(x) * (1-Sigmoid(x)); }
         float Logit(float x){ return log(x/(1-x)); }
@@ -75,7 +75,7 @@ class NN{
             if(FunctionNum==3){ return ATanh(x); }
             return 0;
         }
-        
+
         float mse(float x, float intended){
             return ((intended - x) * (intended - x));
         }
@@ -135,65 +135,80 @@ class NN{
         float maxoutput = 0.0f;
         int threadNum;
 
-        NN(vector<int> _NNL, string _Function, string _CostFunctionStr, string _OptimizerStr){
-            threadNum = 100;
-            srand(time(0));
-            Function = _Function;
-            CostFunctionStr = _CostFunctionStr;
-            OptimizerStr = _OptimizerStr;
-            TL = _NNL.size();
-            NNL = _NNL;
-            int idcount = 0;
-            if(Function=="Sigmoid"){ FunctionNum = 0; }
-            else if(Function=="Relu"){ FunctionNum = 1; }
-            else if(Function=="LeakyRelu"){ FunctionNum = 2; }
-            else if(Function=="Tanh"){ FunctionNum = 3; }
-            else{ std::cout << "Invalid activation function inputted"; return; }
-            if(CostFunctionStr=="mse"){ CostFunctionNum = 0;}
-            else if(CostFunctionStr=="binary crossentropy"){ CostFunctionNum = 1;}
-            else{ std::cout << "Invalid cost function inputted"; return; }
-            if(OptimizerStr=="sgd"){ OptimizerNum = 0; }
-            else if(OptimizerStr=="Msgd"){ OptimizerNum = 1; }
-            else{ std::cout << "Invalid optimizer inputted"; return; }
-            for(int i = 0; i < TL; i++){
-                LayerActivationStrings.push_back(Function);
-                LayerActivationNums.push_back(FunctionNum);
-            }
-            std::default_random_engine generator;
-            for(int i = 0; i < NNL.size(); i++){
-                for(int k = 0; k < NNL[i]; k++){
-                    Node nod;
-                    nod.id = idcount;
-                    nod.layer = i;
-                    nod.isInput = !(bool)i;
-                    nod.numInNodes = 0;
-                    if(!nod.isInput){
-                        nod.numInNodes = NNL[i-1];
-                        std::normal_distribution<float> gaussian(0.0f, sqrt(2.0f/nod.numInNodes));
-                        std::uniform_real_distribution<float> uniform(-1.0f/sqrt(nod.numInNodes), 1.0f/sqrt(nod.numInNodes));
-                        for(int j = 0; j < Nodes.size(); j++){
-                            if(Nodes[j].layer == i-1){
-                                nod.inNodes.push_back(j);
-                                if(FunctionNum == 1 || FunctionNum == 2 || FunctionNum == 3){ nod.inWeights.push_back(gaussian(generator)); }
-                                if(FunctionNum == 0){ nod.inWeights.push_back(uniform(generator)); }
+        NN(vector<int> _NNL, string _Function, string _CostFunctionStr, string _OptimizerStr, bool init = true){
+            if(init == true){
+                threadNum = 64;
+                srand(time(0));
+                Function = _Function;
+                CostFunctionStr = _CostFunctionStr;
+                OptimizerStr = _OptimizerStr;
+                TL = _NNL.size();
+                NNL = _NNL;
+                int idcount = 0;
+                if(Function=="Sigmoid"){ FunctionNum = 0; }
+                else if(Function=="Relu"){ FunctionNum = 1; }
+                else if(Function=="LeakyRelu"){ FunctionNum = 2; }
+                else if(Function=="Tanh"){ FunctionNum = 3; }
+                else{ std::cout << "Invalid activation function inputted"; return; }
+                if(CostFunctionStr=="mse"){ CostFunctionNum = 0;}
+                else if(CostFunctionStr=="binary crossentropy"){ CostFunctionNum = 1;}
+                else{ std::cout << "Invalid cost function inputted"; return; }
+                if(OptimizerStr=="sgd"){ OptimizerNum = 0; }
+                else if(OptimizerStr=="Msgd"){ OptimizerNum = 1; }
+                else{ std::cout << "Invalid optimizer inputted"; return; }
+                for(int i = 0; i < TL; i++){
+                    LayerActivationStrings.push_back(Function);
+                    LayerActivationNums.push_back(FunctionNum);
+                }
+                std::default_random_engine generator;
+                for(int i = 0; i < NNL.size(); i++){
+                    for(int k = 0; k < NNL[i]; k++){
+                        Node nod;
+                        nod.id = idcount;
+                        nod.layer = i;
+                        nod.isInput = !(bool)i;
+                        nod.numInNodes = 0;
+                        if(!nod.isInput){
+                            nod.numInNodes = NNL[i-1];
+                            std::normal_distribution<float> gaussian(0.0f, sqrt(2.0f/nod.numInNodes));
+                            std::uniform_real_distribution<float> uniform(-1.0f/sqrt(nod.numInNodes), 1.0f/sqrt(nod.numInNodes));
+                            for(int j = 0; j < Nodes.size(); j++){
+                                if(Nodes[j].layer == i-1){
+                                    nod.inNodes.push_back(j);
+                                    if(FunctionNum == 1 || FunctionNum == 2 || FunctionNum == 3){ nod.inWeights.push_back(gaussian(generator)); }
+                                    if(FunctionNum == 0){ nod.inWeights.push_back(uniform(generator)); }
+                                }
                             }
                         }
+                        nod.a = 0;
+                        nod.z = 0;
+                        nod.bias = 0;
+                        Nodes.push_back(nod);
+                        idcount++;
                     }
-                    nod.a = 0;
-                    nod.z = 0;
-                    nod.bias = 0;
-                    Nodes.push_back(nod);
-                    idcount++;
                 }
-            }
-            int prevLayer = -1;
-            for(int i = 0; i < Nodes.size(); i++){
-                if(Nodes[i].layer!=prevLayer){
-                    layerStarts.push_back(i);
-                    prevLayer = Nodes[i].layer;
+                int prevLayer = -1;
+                for(int i = 0; i < Nodes.size(); i++){
+                    if(Nodes[i].layer!=prevLayer){
+                        layerStarts.push_back(i);
+                        prevLayer = Nodes[i].layer;
+                    }
                 }
+                layerStarts.push_back(Nodes.size());
             }
-            layerStarts.push_back(Nodes.size());
+
+        }
+
+        void copyNet(NN& dest, NN& source){
+            dest.layerStarts = source.layerStarts;
+            dest.TL = source.TL;
+            dest.NNL = source.NNL;
+            dest.LayerActivationNums = source.LayerActivationNums;
+            dest.BiasMult = source.BiasMult;
+            dest.Nodes = source.Nodes;
+            dest.OptimizerNum = source.OptimizerNum;
+            dest.CostFunctionNum = source.CostFunctionNum;
+            dest.threadNum = source.threadNum;
         }
 
         void UpdateLayerActivation(NN& net, string activation, int layer){
@@ -236,7 +251,7 @@ class NN{
                     }
                 }
                 net.parrallelActivation(net, net.Nodes[NODE]);
-            } 
+            }
             for(int i = net.layerStarts[net.TL-1]; i < net.Nodes.size(); i++){
                 net.Nodes[i].a = net.Activation(net.Nodes[i].z, i);
             }
@@ -287,7 +302,7 @@ class NN{
                         net.Nodes[NODE].inWeights[i] -= net.adjustRate * WeightChanges[NODE][i];
                         WeightChanges[NODE][i] = 0;
                     }
-                }                
+                }
             }
             if(net.OptimizerNum==1){
                 float update;
@@ -308,7 +323,7 @@ class NN{
                         net.updateVectorWeights[NODE][i] = update;
                         WeightChanges[NODE][i] = 0;
                     }
-                }  
+                }
             }
         }
 
@@ -320,56 +335,79 @@ class NN{
             float avgcost = 0;
             net.adjustRate = LR/batch;
             int firstOutput = net.Nodes[net.Nodes.size() - 1].inNodes[net.Nodes[net.Nodes.size()-1].inNodes.size() - 1] + 1;
+            int numThreads;
+            if(threadNum<=batch){ numThreads = threadNum; }
+            else{ numThreads = batch; }
+            //numThreads = batch;
             vector<vector<float>> changesWeights;
             vector<float> changesBiases;
-            vector<float> baseDerivatives;
-            for(int i = 0; i < net.Nodes.size(); i++){
-               baseDerivatives.push_back(0.0f);
+            // vector<float> baseDerivatives;
+            // for(int i = 0; i < net.Nodes.size(); i++){
+            //    baseDerivatives.push_back(0.0f);
+            // }
+            for(int NODE = 0; NODE < net.Nodes.size(); NODE++){
+                changesBiases.push_back(0.0f);
+                if(!net.updateVectorsInitialized){net.updateVectorBiases.push_back(0.0f);}
+                changesWeights.push_back({});
+                if(!net.updateVectorsInitialized){net.updateVectorWeights.push_back({});}
+                for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
+                    changesWeights[NODE].push_back(0.0f);
+                    if(!net.updateVectorsInitialized){net.updateVectorWeights[NODE].push_back(0.0f);}
+                }
             }
+            net.updateVectorsInitialized = true;
+
+
+            auto computeDerivatives = [&](int point){
+                vector<float> baseDerivatives;
+                for(int i = 0; i < net.Nodes.size(); i++){
+                    baseDerivatives.push_back(0.0f);
+                }
+                NN net1 (net.NNL, "LeakyRelu", "mse", "sgd", false);
+                net.copyNet(net1, net);
+                net1.inVal = {net.inVal[point]};
+                net1.outVal = {net.outVal[point]};
+                net1.loadValue(0, net1);
+                net1.ForwardProp(net1);
+                for(int i = 0; i < net1.outVal[0].size(); i++){
+                    cost += CostFunction(net1.Nodes[firstOutput + i].a, net1.outVal[0][i]);
+                }
+                avgcost+=cost;
+                cost = 0;
+                for(int NODE = net1.Nodes.size()-1; NODE >= 0; NODE--){
+                    if(net1.Nodes[NODE].layer==net.TL-1){
+                        baseDerivatives[NODE] = DCostFunction(net1.Nodes[NODE].a, net1.outVal[0][NODE-firstOutput]) * DActivation(net1.Nodes[NODE].z, NODE);
+                    }
+                    else{
+                        baseDerivatives[NODE] = 0;
+                        for(int i = 0; i < net1.NNL[net.Nodes[NODE].layer + 1]; i++){
+                            baseDerivatives[NODE]+=(baseDerivatives[net1.layerStarts[net1.Nodes[NODE].layer + 1] + i] * net1.Nodes[net1.layerStarts[net1.Nodes[NODE].layer + 1] + i].inWeights[NODE - net1.Nodes[net1.layerStarts[net1.Nodes[NODE].layer + 1] + i].inNodes[0]]);
+                        }
+                        baseDerivatives[NODE] *= DActivation(net1.Nodes[NODE].z, NODE);
+                    }
+                    changesBiases[NODE] += baseDerivatives[NODE] * BiasMult;
+                    if(net1.Nodes[NODE].layer>0){
+                        for(int i = 0; i < net1.Nodes[NODE].numInNodes; i++){
+                            changesWeights[NODE][i] += baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a;
+                        }
+                    }
+                }
+            };
+
             for(int epoch = 0; epoch < epochs; epoch++){
                 net.DataShuffle(net);
-                for(int point = 0; point < net.inVal.size(); point++){
-                    net.loadValue(point, net);
-                    net.ForwardProp(net);
-                    for(int i = 0; i < net.outVal[point].size(); i++){
-                        cost += CostFunction(net.Nodes[firstOutput + i].a, net.outVal[point][i]);
+                vector<thread> threads;
+                for(int point = 0; point < net.inVal.size(); point+=numThreads){
+                    for(int i = 0; i < numThreads && point+i < net.inVal.size(); i++){
+                        threads.push_back(thread{computeDerivatives, point+i});
                     }
-                    avgcost+=cost;
-                    cost = 0;
-                    if(epoch == 0 && point == 0){
-                        for(int NODE = 0; NODE < net.Nodes.size(); NODE++){
-                            changesBiases.push_back(0.0f);
-                            if(!net.updateVectorsInitialized){net.updateVectorBiases.push_back(0.0f);}
-                            changesWeights.push_back({});
-                            if(!net.updateVectorsInitialized){net.updateVectorWeights.push_back({});}
-                            for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                                changesWeights[NODE].push_back(0.0f);
-                                if(!net.updateVectorsInitialized){net.updateVectorWeights[NODE].push_back(0.0f);}
-                            }
-                        } 
-                        net.updateVectorsInitialized = true;
+                    for(int i = 0; i < numThreads && point+i < net.inVal.size(); i++){
+                        threads[i].join();
                     }
+                    threads.clear();
 
-                    for(int NODE = net.Nodes.size()-1; NODE >= 0; NODE--){
-                        if(net.Nodes[NODE].layer==net.TL-1){
-                            baseDerivatives[NODE] = DCostFunction(net.Nodes[NODE].a, net.outVal[point][NODE-firstOutput]) * DActivation(net.Nodes[NODE].z, NODE);
-                        }
-                        else{
-                            baseDerivatives[NODE] = 0;
-                            for(int i = 0; i < net.NNL[net.Nodes[NODE].layer + 1]; i++){
-                                baseDerivatives[NODE]+=(baseDerivatives[net.layerStarts[net.Nodes[NODE].layer + 1] + i] * net.Nodes[net.layerStarts[net.Nodes[NODE].layer + 1] + i].inWeights[NODE - net.Nodes[net.layerStarts[net.Nodes[NODE].layer + 1] + i].inNodes[0]]);
-                            }
-                            baseDerivatives[NODE] *= DActivation(net.Nodes[NODE].z, NODE);
-                        }
-                        changesBiases[NODE] += baseDerivatives[NODE] * BiasMult;
-                        if(net.Nodes[NODE].layer>0){
-                            for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                                changesWeights[NODE][i] += baseDerivatives[NODE] * net.Nodes[net.Nodes[NODE].inNodes[i]].a;
-                            }
-                        }
-                    }
 
-                    if(point%batch==0 && point > 0){
+                    if(point/batch>=0 && point > 0){
                         net.UpdateParams(net, changesWeights, changesBiases);
                     }
                 }
@@ -378,7 +416,7 @@ class NN{
                 }
                 std::cout << "cost: " << avgcost/net.inVal.size() << " Epoch: " << epoch << "\n";
                 avgcost = 0;
-            }   
+            }
         }
 };
 
@@ -393,9 +431,9 @@ int main(){
 
     vector<vector<float>> inData;
     vector<vector<float>> outData;
-    for(int i = 0; i < 1000; i++){
+    for(int i = 0; i < 50000; i++){
         inData.push_back({});
-        for(int j = 0; j < 784; j++){ 
+        for(int j = 0; j < 784; j++){
             inData[i].push_back(((float)dataset.training_images[i][j])/255);
         }
         outData.push_back({});
@@ -431,7 +469,7 @@ int main(){
     for(int i = 0; i < 10000; i++){
         vector<float> prediction = Network.predict(Network, testingData[i]);
         //for(int i = 0; i < 10; i++){
-        //    std::cout << prediction[i] << " "; 
+        //    std::cout << prediction[i] << " ";
         //}
         //std::cout << "\n";
         int maxindex = 0;
@@ -445,6 +483,6 @@ int main(){
         }
     }
     std::cout << totalRight/10000*100 << "\n";
-    
+
     return 0;
 }
