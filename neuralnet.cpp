@@ -410,7 +410,7 @@ int main(){
     }
     Network.inVal = inData;
     Network.outVal = outData;
-    //hello
+    //hell
     // for(float i = -10; i < 10; i += 0.001){
     //     Network.inVal.push_back({i});
     //     Network.outVal.push_back({Network.Activation(1/abs(i)*sinf(i)*sinf(i))});
