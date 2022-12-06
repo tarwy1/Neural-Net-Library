@@ -125,7 +125,7 @@ class NN{
         string OptimizerStr;
         int OptimizerNum = 0;
         vector<int> layerStarts;
-        float momentumConst = 0.9f;
+        float momentumConst = 0.95f;
         vector<vector<float>> updateVectorWeights;
         vector<float> updateVectorBiases;
         float adjustRate = 0.0001f;
@@ -386,6 +386,7 @@ class NN{
             net.DataShuffle(net);
             float avgcost = 0;
             net.adjustRate = LR/batch;
+            if(net.OptimizerNum==3){ net.adjustRate = 1/batch; }
             int firstOutput = net.Nodes[net.Nodes.size() - 1].inNodes[net.Nodes[net.Nodes.size()-1].inNodes.size() - 1] + 1;
             int numThreads;
             if(threadNum<=batch){ numThreads = threadNum; }
@@ -482,12 +483,12 @@ int main(){
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
     mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist-master/mnist-master/");
 
-    NN Network({784, 64, 48, 16, 10}, "LeakyRelu", "mse", "adadelta");
-    //Network.UpdateLayerActivation(Network, "Sigmoid", 4);
+    NN Network({784, 64, 48, 16, 10}, "LeakyRelu", "binary crossentropy", "adadelta");
+    Network.UpdateLayerActivation(Network, "Sigmoid", 4);
 
     vector<vector<float>> inData;
     vector<vector<float>> outData;
-    for(int i = 0; i < 1000; i++){
+    for(int i = 0; i < 50000; i++){
         inData.push_back({});
         for(int j = 0; j < 784; j++){
             inData[i].push_back(((float)dataset.training_images[i][j])/255);
@@ -506,7 +507,7 @@ int main(){
     Network.outVal = outData;
 
 
-    Network.Train(Network, Network.inVal, Network.outVal, 32, 40, 1.0f);
+    Network.Train(Network, Network.inVal, Network.outVal, 32, 50, 0.01f);
 
     vector<vector<float>> testingData;
     vector<float> testingAnswers;
