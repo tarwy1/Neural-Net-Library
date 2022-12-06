@@ -125,7 +125,7 @@ class NN{
         string OptimizerStr;
         int OptimizerNum = 0;
         vector<int> layerStarts;
-        float momentumConst = 0.95f;
+        float momentumConst = 0.9f;
         vector<vector<float>> updateVectorWeights;
         vector<float> updateVectorBiases;
         float adjustRate = 0.0001f;
@@ -483,12 +483,12 @@ int main(){
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
     mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist-master/mnist-master/");
 
-    NN Network({784, 64, 48, 16, 10}, "LeakyRelu", "binary crossentropy", "adadelta");
+    NN Network({784, 128, 64, 48, 10}, "LeakyRelu", "binary crossentropy", "adagrad");
     Network.UpdateLayerActivation(Network, "Sigmoid", 4);
 
     vector<vector<float>> inData;
     vector<vector<float>> outData;
-    for(int i = 0; i < 50000; i++){
+    for(int i = 0; i < 60000; i++){
         inData.push_back({});
         for(int j = 0; j < 784; j++){
             inData[i].push_back(((float)dataset.training_images[i][j])/255);
