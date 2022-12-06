@@ -133,7 +133,7 @@ class NN{
         vector<string> LayerActivationStrings;
         vector<int> LayerActivationNums;
         float maxoutput = 0.0f;
-        float adagradConst = 1e-8;
+        float adagradConst = 1e-5;
         int threadNum;
         float lr;
         vector<vector<float>> parameterUpdateWeights;
@@ -357,22 +357,21 @@ class NN{
                 }
             }
             if(net.OptimizerNum==3){
-                net.adjustRate = net.lr;
                 float update;
                 for(int i = 0; i < net.NNL[0]; i++){
-                    update = sqrt(net.parameterUpdateBiases[i]+adagradConst)*BiasChanges[i]/sqrt(updateVectorBiases[i]+adagradConst);
-                    net.parameterUpdateBiases[i] = net.momentumConst*net.parameterUpdateBiases[i] + (1-net.momentumConst)*update*update;
+                    update = net.adjustRate*sqrt(net.parameterUpdateBiases[i] + net.adagradConst)*BiasChanges[i]/sqrt(updateVectorBiases[i]+adagradConst);
+                    net.parameterUpdateBiases[i] = net.momentumConst * net.parameterUpdateBiases[i] + (1-net.momentumConst)*update*update;
                     net.Nodes[i].bias-= update;
                     BiasChanges[i] = 0;
                 }
                 for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
-                    update = sqrt(net.parameterUpdateBiases[NODE]+adagradConst)*BiasChanges[NODE]/sqrt(updateVectorBiases[NODE]+adagradConst);
-                    net.parameterUpdateBiases[NODE] = net.momentumConst*net.parameterUpdateBiases[NODE] + (1-net.momentumConst)*update*update;
+                    update = net.adjustRate*sqrt(net.parameterUpdateBiases[NODE] + net.adagradConst)*BiasChanges[NODE]/sqrt(updateVectorBiases[NODE]+adagradConst);
+                    net.parameterUpdateBiases[NODE] = net.momentumConst * net.parameterUpdateBiases[NODE] + (1-net.momentumConst)*update*update;
                     net.Nodes[NODE].bias -= update;
                     BiasChanges[NODE] = 0;
                     for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                        update = sqrt(net.parameterUpdateWeights[NODE][i]+adagradConst) * WeightChanges[NODE][i]/sqrt(net.updateVectorWeights[NODE][i] + adagradConst);
-                        net.parameterUpdateWeights[NODE][i] = net.parameterUpdateWeights[NODE][i] * net.momentumConst + (1-net.momentumConst)*update*update;
+                        update = net.adjustRate*sqrt(net.parameterUpdateWeights[NODE][i] + net.adagradConst)*WeightChanges[NODE][i]/sqrt(net.updateVectorWeights[NODE][i] + adagradConst);
+                        net.parameterUpdateWeights[NODE][i] = net.momentumConst*net.parameterUpdateWeights[NODE][i] + (1-net.momentumConst)*update*update;
                         net.Nodes[NODE].inWeights[i] -= update;
                         WeightChanges[NODE][i] = 0;
                     }
@@ -441,7 +440,7 @@ class NN{
                     }
                     changesBiases[NODE] += baseDerivatives[NODE] * BiasMult;
                     if(net.OptimizerNum==2){ net.updateVectorBiases[NODE] += baseDerivatives[NODE] * BiasMult * baseDerivatives[NODE] * BiasMult; } 
-                    if(net.OptimizerNum==3){ net.updateVectorBiases[NODE] = net.momentumConst * net.updateVectorBiases[NODE] + (1-net.momentumConst)*baseDerivatives[NODE] * BiasMult * baseDerivatives[NODE] * BiasMult;}
+                    if(net.OptimizerNum==3){ net.updateVectorBiases[NODE] = net.momentumConst * net.updateVectorBiases[NODE] + (1-net.momentumConst)*baseDerivatives[NODE] * net.BiasMult * baseDerivatives[NODE] * net.BiasMult;}
                     if(net1.Nodes[NODE].layer>0){
                         for(int i = 0; i < net1.Nodes[NODE].numInNodes; i++){
                             changesWeights[NODE][i] += baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a;
@@ -483,8 +482,8 @@ int main(){
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
     mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist-master/mnist-master/");
 
-    NN Network({784, 64, 48, 16, 10}, "LeakyRelu", "binary crossentropy", "adadelta");
-    Network.UpdateLayerActivation(Network, "Sigmoid", 4);
+    NN Network({784, 64, 48, 16, 10}, "LeakyRelu", "mse", "adadelta");
+    //Network.UpdateLayerActivation(Network, "Sigmoid", 4);
 
     vector<vector<float>> inData;
     vector<vector<float>> outData;
@@ -507,7 +506,7 @@ int main(){
     Network.outVal = outData;
 
 
-    Network.Train(Network, Network.inVal, Network.outVal, 32, 40, 0.01f);
+    Network.Train(Network, Network.inVal, Network.outVal, 32, 40, 1.0f);
 
     vector<vector<float>> testingData;
     vector<float> testingAnswers;
