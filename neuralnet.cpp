@@ -1,14 +1,15 @@
 #define _WIN32_WINNT 0X0501
 #include <vector>
 #include <iostream>
-#include "cmath"
 #include <algorithm>
 #include <fstream>
 #include <string>
 #include <random>
 #include <ctime>
+#include <cmath>
 #include "./mnist-master/mnist-master/include/mnist/mnist_reader.hpp"
 #include "mingw.thread.h"
+#include <thread>
 
 using namespace std;
 
@@ -405,7 +406,6 @@ class NN{
             }
             net.updateVectorsInitialized = true;
 
-
             auto computeDerivatives = [&](int point){
                 vector<float> baseDerivatives;
                 for(int i = 0; i < net.Nodes.size(); i++){
@@ -483,8 +483,8 @@ int main(){
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
     mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist-master/mnist-master/");
 
-    NN Network({784, 128, 64, 48, 10}, "LeakyRelu", "binary crossentropy", "adagrad");
-    Network.UpdateLayerActivation(Network, "Sigmoid", 4);
+    NN Network({784, 1000, 800, 600, 256, 10}, "LeakyRelu", "mse", "adagrad");
+    //Network.UpdateLayerActivation(Network, "Sigmoid", 6);
 
     vector<vector<float>> inData;
     vector<vector<float>> outData;
@@ -505,7 +505,6 @@ int main(){
     }
     Network.inVal = inData;
     Network.outVal = outData;
-
 
     Network.Train(Network, Network.inVal, Network.outVal, 32, 50, 0.01f);
 
