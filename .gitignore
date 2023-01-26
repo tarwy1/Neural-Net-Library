@@ -21,3 +21,10 @@
 *.exe
 *.out
 *.app
+
+
+#stufd
+*.csv
+*.txt
+.vscode
+build

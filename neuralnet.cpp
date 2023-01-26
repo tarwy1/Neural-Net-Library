@@ -8,7 +8,7 @@
 #include <ctime>
 #include <cmath>
 #include "./mnist-master/mnist-master/include/mnist/mnist_reader.hpp"
-#include "mingw.thread.h"
+//#include "mingw.thread.h"
 #include <thread>
 
 using namespace std;
@@ -16,6 +16,7 @@ using namespace std;
 class NN{
     public:
 
+        // activation functions and derivatives and inverses(for some)
         float Sigmoid(float x){ return 1/(1+exp(-x)); }
         float DSigmoid(float x){ return Sigmoid(x) * (1-Sigmoid(x)); }
         float Logit(float x){ return log(x/(1-x)); }
@@ -77,6 +78,7 @@ class NN{
             return 0;
         }
 
+        // loss functions and derivatives
         float mse(float x, float intended){
             return ((intended - x) * (intended - x));
         }
@@ -101,56 +103,57 @@ class NN{
         }
 
         struct Node{
-            int id; // node id (just an integer)
+            int id; // node id
             int layer; // layer its in,  0 is the input layer
             int numInNodes; // number of nodes in the previous layer
-            bool isInput; // if the node is in the input layer
+            bool isInput; // is in input layer
             vector<int> inNodes; // list of the id's of nodes in previous layer
             vector<float> inWeights; // list of values of the weights between nodes in previous layer
-            float z; // z
-            float a; // a  (the one after sigmoid)
-            float bias;
+            float z; // z  activation before function
+            float a; // a  activation after activation function
+            float bias; // bias
         };
 
-        int TL;
-        vector<int> NNL;
-        vector<Node> Nodes;
-        vector<vector<float>> inVal;
-        vector<vector<float>> outVal;
-        int datapiece;
-        string Function;
-        int FunctionNum = 0;
-        string CostFunctionStr;
-        int CostFunctionNum = 0;
-        float BiasMult = 1.0f;
-        string OptimizerStr;
-        int OptimizerNum = 0;
-        vector<int> layerStarts;
-        float momentumConst = 0.9f;
-        vector<vector<float>> updateVectorWeights;
-        vector<float> updateVectorBiases;
-        float adjustRate = 0.0001f;
-        bool updateVectorsInitialized = false;
-        vector<string> LayerActivationStrings;
-        vector<int> LayerActivationNums;
-        float maxoutput = 0.0f;
-        float adagradConst = 1e-5;
-        int threadNum;
-        float lr;
-        vector<vector<float>> parameterUpdateWeights;
+        int TL; // total number of layers
+        vector<int> NNL;  // list containing number of nodes in each layer
+        vector<Node> Nodes; // list of nodes including all values
+        vector<vector<float>> inVal; // input data list
+        vector<vector<float>> outVal; // output data/data labels list
+        int datapiece; // int representing which data point is being processed
+        string Function; // activation function string used for primary activation function applied to all layers   Sigmoid//Relu//LeakyRelu//Tanh//Softmax
+        int FunctionNum = 0; // activation function int
+        string CostFunctionStr; // cost function string
+        int CostFunctionNum = 0; // cost function int
+        float BiasMult = 1.0f; // bias multiplier (when calculating activation, bias is multiplied by this for all nodes)
+        string OptimizerStr; // optimizer string
+        int OptimizerNum = 0; // optimizer int
+        vector<int> layerStarts; // list of starting node ids for each layer
+        float momentumConst = 0.9f; // constant γ used in algorithms such as momentum and adadelta
+        vector<vector<float>> updateVectorWeights; // contains update information for weights during backprop
+        vector<float> updateVectorBiases; // contains update information for biases during backprop
+        float adjustRate = 0.0001f; // learning rate divided by batch size, calculated during backprop, initialized to a base value
+        bool updateVectorsInitialized = false; // check bool during initialization for backprop
+        vector<string> LayerActivationStrings; // string for activation function of each layer
+        vector<int> LayerActivationNums; // int for activation function of each layer
+        float maxoutput = 0.0f; // max output variable used for softmax calculation
+        float adagradConst = 1e-5; // adagrad constant
+        int threadNum = 64; // number of threads created during backprop, determined then
+        float lr; // learning rate
+        // lists used to track weighted averages for adagrad, delta etc
+        vector<vector<float>> parameterUpdateWeights; 
         vector<float> parameterUpdateBiases;
 
-
+        //network initializer, only ran without init true during backprop to allow thread creation
         NN(vector<int> _NNL, string _Function, string _CostFunctionStr, string _OptimizerStr, bool init = true){
             if(init == true){
-                threadNum = 64;
-                srand(time(0));
+                srand(time(0)); // used for random initialization of weights+biases
                 Function = _Function;
                 CostFunctionStr = _CostFunctionStr;
                 OptimizerStr = _OptimizerStr;
                 TL = _NNL.size();
                 NNL = _NNL;
                 int idcount = 0;
+                //checks for function/optimizer/loss inputs
                 if(Function=="Sigmoid"){ FunctionNum = 0; }
                 else if(Function=="Relu"){ FunctionNum = 1; }
                 else if(Function=="LeakyRelu"){ FunctionNum = 2; }
@@ -169,6 +172,7 @@ class NN{
                     LayerActivationNums.push_back(FunctionNum);
                 }
                 std::default_random_engine generator;
+                // initializing network values and lists
                 for(int i = 0; i < NNL.size(); i++){
                     for(int k = 0; k < NNL[i]; k++){
                         Node nod;
@@ -178,6 +182,7 @@ class NN{
                         nod.numInNodes = 0;
                         if(!nod.isInput){
                             nod.numInNodes = NNL[i-1];
+                            //random weights/bias initialization
                             std::normal_distribution<float> gaussian(0.0f, sqrt(2.0f/nod.numInNodes));
                             std::uniform_real_distribution<float> uniform(-1.0f/sqrt(nod.numInNodes), 1.0f/sqrt(nod.numInNodes));
                             for(int j = 0; j < Nodes.size(); j++){
@@ -198,7 +203,7 @@ class NN{
                 int prevLayer = -1;
                 for(int i = 0; i < Nodes.size(); i++){
                     if(Nodes[i].layer!=prevLayer){
-                        layerStarts.push_back(i);
+                        layerStarts.push_back(i); // populating layerstarts
                         prevLayer = Nodes[i].layer;
                     }
                 }
@@ -207,18 +212,8 @@ class NN{
 
         }
 
-        void copyNet(NN& dest, NN& source){
-            dest.layerStarts = source.layerStarts;
-            dest.TL = source.TL;
-            dest.NNL = source.NNL;
-            dest.LayerActivationNums = source.LayerActivationNums;
-            dest.BiasMult = source.BiasMult;
-            dest.Nodes = source.Nodes;
-            dest.OptimizerNum = source.OptimizerNum;
-            dest.CostFunctionNum = source.CostFunctionNum;
-            dest.threadNum = source.threadNum;
-        }
 
+        // function used to change activation of a given layer to <activation>  Sigmoid//Relu//LeakyRelu//Tanh//Softmax
         void UpdateLayerActivation(NN& net, string activation, int layer){
             if(activation=="Sigmoid"){ net.LayerActivationStrings[layer] = activation; net.LayerActivationNums[layer] = 0; }
             else if(activation=="Relu"){ net.LayerActivationStrings[layer] = activation; net.LayerActivationNums[layer] = 1; }
@@ -228,58 +223,8 @@ class NN{
             else{ std::cout << "Activation function inputted incorrectly" << "\n";}
         }
 
-        void DataShuffle(NN& net){
-            vector<vector<float>> in = net.inVal;
-            vector<vector<float>> out = net.outVal;
-            vector<int> ids;
-            for(int i = 0; i < in.size(); i++){ ids.push_back(i); }
-            std::random_shuffle(ids.begin(), ids.end());
-            for(int i = 0; i < ids.size(); i++){
-                net.inVal[i] = in[ids[i]];
-                net.outVal[i] = out[ids[i]];
-            }
-        }
 
-        void parrallelActivation(NN& net, NN::Node& nod){
-            if(nod.isInput){ return; }
-            nod.z = net.BiasMult * nod.bias;
-            for(int i = 0; i < nod.numInNodes; i++){
-                nod.z += nod.inWeights[i] * net.Nodes[i + nod.inNodes[0]].a;
-            }
-        }
-
-        void ForwardProp(NN& net){
-            int prevlayer = 0;
-            for(int NODE = 0; NODE < net.Nodes.size(); NODE++){
-                if(net.Nodes[NODE].layer!=prevlayer){
-                    prevlayer = net.Nodes[NODE].layer;
-                    for(int i = net.layerStarts[prevlayer-1]; i < net.layerStarts[prevlayer]; i++){
-                        net.Nodes[i].a = net.Activation(net.Nodes[i].z, i);
-                    }
-                }
-                net.parrallelActivation(net, net.Nodes[NODE]);
-            }
-            net.maxoutput = 0;
-            for(int i = net.layerStarts[net.TL-1]; i < net.Nodes.size(); i++){
-                if(net.Nodes[i].z>=net.maxoutput){
-                    net.maxoutput = net.Nodes[i].z;
-                }
-            }
-            for(int i = net.layerStarts[net.TL-1]; i < net.Nodes.size(); i++){
-                net.Nodes[i].a = net.Activation(net.Nodes[i].z, i);
-            }
-        }
-
-        void loadValue(int _datapiece, NN& net){
-            net.datapiece = _datapiece;
-            for(int i = 0; i < net.NNL[0]; i++){
-                if(net.Nodes[i].isInput = true){
-                    net.Nodes[i].z = net.inVal[datapiece][i] + net.Nodes[i].bias*net.BiasMult;
-                    net.Nodes[i].a = Activation(net.Nodes[i].z, i);
-                }
-            }
-        }
-
+        // takes input data and returns network outputs after forward propagating // primary predict function
         vector<float> predict(NN& net, vector<float> Input){
             for(int i = 0; i < net.NNL[0]; i++){
                 net.Nodes[i].z = Input[i]+ net.Nodes[i].bias*net.BiasMult;
@@ -295,6 +240,7 @@ class NN{
             return returnVals;
         }
 
+        //makes a prediction and then prints it << kinda useless
         void printPrediction(NN& net, vector<float> Input){
             vector<float> outs = predict(net, Input);
             for(int i = 0; i < outs.size(); i++){
@@ -302,98 +248,28 @@ class NN{
             }
         }
 
-        void UpdateParams(NN& net, vector<vector<float>> &WeightChanges, vector<float> &BiasChanges){
-            if(net.OptimizerNum==0){
-                for(int i = 0; i < net.NNL[0]; i++){
-                    net.Nodes[i].bias-=net.adjustRate*BiasChanges[i];
-                    BiasChanges[i] = 0;
-                }
-                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
-                    net.Nodes[NODE].bias -= net.adjustRate * BiasChanges[NODE];
-                    BiasChanges[NODE] = 0;
-                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                        net.Nodes[NODE].inWeights[i] -= net.adjustRate * WeightChanges[NODE][i];
-                        WeightChanges[NODE][i] = 0;
-                    }
-                }
-            }
-            if(net.OptimizerNum==1){
-                float update;
-                for(int i = 0; i < net.NNL[0]; i++){
-                    update = net.adjustRate*BiasChanges[i] + net.momentumConst*net.updateVectorBiases[i];
-                    net.Nodes[i].bias-= update;
-                    net.updateVectorBiases[i] = update;
-                    BiasChanges[i] = 0;
-                }
-                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
-                    update = net.adjustRate*BiasChanges[NODE] + net.momentumConst*net.updateVectorBiases[NODE];
-                    net.Nodes[NODE].bias -= update;
-                    net.updateVectorBiases[NODE] = update;
-                    BiasChanges[NODE] = 0;
-                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                        update = net.adjustRate * WeightChanges[NODE][i] + net.momentumConst*net.updateVectorWeights[NODE][i];
-                        net.Nodes[NODE].inWeights[i] -= update;
-                        net.updateVectorWeights[NODE][i] = update;
-                        WeightChanges[NODE][i] = 0;
-                    }
-                }
-            }
-            if(net.OptimizerNum==2){
-                net.adjustRate = net.lr;
-                float update;
-                for(int i = 0; i < net.NNL[0]; i++){
-                    update = net.adjustRate*BiasChanges[i]/sqrt(updateVectorBiases[i]+adagradConst);
-                    net.Nodes[i].bias-= update;
-                    BiasChanges[i] = 0;
-                }
-                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
-                    update = net.adjustRate*BiasChanges[NODE]/sqrt(updateVectorBiases[NODE]+adagradConst);
-                    net.Nodes[NODE].bias -= update;
-                    BiasChanges[NODE] = 0;
-                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                        update = net.adjustRate * WeightChanges[NODE][i]/sqrt(net.updateVectorWeights[NODE][i] + adagradConst);
-                        net.Nodes[NODE].inWeights[i] -= update;
-                        WeightChanges[NODE][i] = 0;
-                    }
-                }
-            }
-            if(net.OptimizerNum==3){
-                float update;
-                for(int i = 0; i < net.NNL[0]; i++){
-                    update = net.adjustRate*sqrt(net.parameterUpdateBiases[i] + net.adagradConst)*BiasChanges[i]/sqrt(updateVectorBiases[i]+adagradConst);
-                    net.parameterUpdateBiases[i] = net.momentumConst * net.parameterUpdateBiases[i] + (1-net.momentumConst)*update*update;
-                    net.Nodes[i].bias-= update;
-                    BiasChanges[i] = 0;
-                }
-                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
-                    update = net.adjustRate*sqrt(net.parameterUpdateBiases[NODE] + net.adagradConst)*BiasChanges[NODE]/sqrt(updateVectorBiases[NODE]+adagradConst);
-                    net.parameterUpdateBiases[NODE] = net.momentumConst * net.parameterUpdateBiases[NODE] + (1-net.momentumConst)*update*update;
-                    net.Nodes[NODE].bias -= update;
-                    BiasChanges[NODE] = 0;
-                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                        update = net.adjustRate*sqrt(net.parameterUpdateWeights[NODE][i] + net.adagradConst)*WeightChanges[NODE][i]/sqrt(net.updateVectorWeights[NODE][i] + adagradConst);
-                        net.parameterUpdateWeights[NODE][i] = net.momentumConst*net.parameterUpdateWeights[NODE][i] + (1-net.momentumConst)*update*update;
-                        net.Nodes[NODE].inWeights[i] -= update;
-                        WeightChanges[NODE][i] = 0;
-                    }
-                }
-            }
-        }
-
-        void Train(NN& net, vector<vector<float>> InData, vector<vector<float>> OutData, int batch, int epochs, float LR){
+        // train function for network, verbosity can be "verbose" or "silent"
+        void Train(NN& net, vector<vector<float>> InData, vector<vector<float>> OutData, int batch, int epochs, float LR, string verbosity = "verbose"){
             net.lr = LR;
             net.inVal = InData;
             net.outVal = OutData;
             net.DataShuffle(net);
             float avgcost = 0;
+            // set adjust rate (adadelta does not use LR)
             net.adjustRate = LR/batch;
             if(net.OptimizerNum==3){ net.adjustRate = 1/batch; }
+            // id of first output node
             int firstOutput = net.Nodes[net.Nodes.size() - 1].inNodes[net.Nodes[net.Nodes.size()-1].inNodes.size() - 1] + 1;
             int numThreads;
+            // set threadnum (if less than batch, threadnum is used else batch size is used)
             if(threadNum<=batch){ numThreads = threadNum; }
             else{ numThreads = batch; }
-            vector<vector<float>> changesWeights;
+
+            // derivatives of cost w.r.t. weights and biases
+            vector<vector<float>> changesWeights; 
             vector<float> changesBiases;
+
+            // filling variables.
             for(int NODE = 0; NODE < net.Nodes.size(); NODE++){
                 changesBiases.push_back(0.0f);
                 if(!net.updateVectorsInitialized){net.updateVectorBiases.push_back(0.0f); net.parameterUpdateBiases.push_back(0.0f);}
@@ -406,6 +282,7 @@ class NN{
             }
             net.updateVectorsInitialized = true;
 
+            // lambda used for multithreading, makes a copy of main network and uses copy to forward and backprop a data point and compute derivatives
             auto computeDerivatives = [&](int point){
                 vector<float> baseDerivatives;
                 for(int i = 0; i < net.Nodes.size(); i++){
@@ -428,7 +305,7 @@ class NN{
                         else{
                             baseDerivatives[NODE] = 0;
                             for(int i = net1.layerStarts[net1.TL-1]; i < net1.Nodes.size(); i++){
-                                baseDerivatives[NODE] += net1.DCostFunction(net1.Nodes[NODE].a, net1.outVal[0][NODE-firstOutput]) * net1.Softmax(net1.Nodes[i].z, i) * ((i == NODE), net1.Softmax(net1.Nodes[NODE].z, NODE));
+                                baseDerivatives[NODE] += net1.DCostFunction(net1.Nodes[NODE].a, net1.outVal[0][NODE-firstOutput]) * net1.Softmax(net1.Nodes[i].z, i) * ((i == NODE) - net1.Softmax(net1.Nodes[NODE].z, NODE));
                             }
                         }
                     }
@@ -452,9 +329,12 @@ class NN{
                 }
             };
 
+            // main train loop
             for(int epoch = 0; epoch < epochs; epoch++){
+                // data is shuffled every epoch
                 net.DataShuffle(net);
                 vector<thread> threads;
+                //as many threads as defined above/possible until entire dataset is cycled through network
                 for(int point = 0; point < net.inVal.size(); point+=numThreads){
                     for(int i = 0; i < numThreads && point+i < net.inVal.size(); i++){
                         threads.push_back(thread{computeDerivatives, point+i});
@@ -464,17 +344,179 @@ class NN{
                     }
                     threads.clear();
 
+                    // updates parameters for each batch
                     if(point/batch>=0 && point > 0){
                         net.UpdateParams(net, changesWeights, changesBiases);
                     }
                 }
+                
+                // performs remaining updates if batch does not divide evenly into dataset size
                 if(net.inVal.size()%batch!=0){
                     net.UpdateParams(net, changesWeights, changesBiases);
                 }
+
+                // calculate and print cost
                 std::cout << "cost: " << avgcost/net.inVal.size() << " Epoch: " << epoch << "\n";
                 avgcost = 0;
             }
         }
+    
+    private:
+        // light network copy used during backprop
+        void copyNet(NN& dest, NN& source){
+            dest.layerStarts = source.layerStarts;
+            dest.TL = source.TL;
+            dest.NNL = source.NNL;
+            dest.LayerActivationNums = source.LayerActivationNums;
+            dest.BiasMult = source.BiasMult;
+            dest.Nodes = source.Nodes;
+            dest.OptimizerNum = source.OptimizerNum;
+            dest.CostFunctionNum = source.CostFunctionNum;
+            dest.threadNum = source.threadNum;
+        }
+        // function to update network parameters after caclulating update vectors
+        void UpdateParams(NN& net, vector<vector<float>> &WeightChanges, vector<float> &BiasChanges){
+            //SGD
+            if(net.OptimizerNum==0){
+                for(int i = 0; i < net.NNL[0]; i++){
+                    net.Nodes[i].bias-=net.adjustRate*BiasChanges[i];
+                    BiasChanges[i] = 0;
+                }
+                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
+                    net.Nodes[NODE].bias -= net.adjustRate * BiasChanges[NODE];
+                    BiasChanges[NODE] = 0;
+                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
+                        net.Nodes[NODE].inWeights[i] -= net.adjustRate * WeightChanges[NODE][i];
+                        WeightChanges[NODE][i] = 0;
+                    }
+                }
+            }
+            // SGD momentum
+            if(net.OptimizerNum==1){
+                float update;
+                for(int i = 0; i < net.NNL[0]; i++){
+                    update = net.adjustRate*BiasChanges[i] + net.momentumConst*net.updateVectorBiases[i];
+                    net.Nodes[i].bias-= update;
+                    net.updateVectorBiases[i] = update;
+                    BiasChanges[i] = 0;
+                }
+                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
+                    update = net.adjustRate*BiasChanges[NODE] + net.momentumConst*net.updateVectorBiases[NODE];
+                    net.Nodes[NODE].bias -= update;
+                    net.updateVectorBiases[NODE] = update;
+                    BiasChanges[NODE] = 0;
+                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
+                        update = net.adjustRate * WeightChanges[NODE][i] + net.momentumConst*net.updateVectorWeights[NODE][i];
+                        net.Nodes[NODE].inWeights[i] -= update;
+                        net.updateVectorWeights[NODE][i] = update;
+                        WeightChanges[NODE][i] = 0;
+                    }
+                }
+            }
+            //adagrad
+            if(net.OptimizerNum==2){
+                net.adjustRate = net.lr;
+                float update;
+                for(int i = 0; i < net.NNL[0]; i++){
+                    update = net.adjustRate*BiasChanges[i]/sqrt(updateVectorBiases[i]+adagradConst);
+                    net.Nodes[i].bias-= update;
+                    BiasChanges[i] = 0;
+                }
+                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
+                    update = net.adjustRate*BiasChanges[NODE]/sqrt(updateVectorBiases[NODE]+adagradConst);
+                    net.Nodes[NODE].bias -= update;
+                    BiasChanges[NODE] = 0;
+                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
+                        update = net.adjustRate * WeightChanges[NODE][i]/sqrt(net.updateVectorWeights[NODE][i] + adagradConst);
+                        net.Nodes[NODE].inWeights[i] -= update;
+                        WeightChanges[NODE][i] = 0;
+                    }
+                }
+            }
+            //adadelta
+            if(net.OptimizerNum==3){
+                float update;
+                for(int i = 0; i < net.NNL[0]; i++){
+                    update = net.adjustRate*sqrt(net.parameterUpdateBiases[i] + net.adagradConst)*BiasChanges[i]/sqrt(updateVectorBiases[i]+adagradConst);
+                    net.parameterUpdateBiases[i] = net.momentumConst * net.parameterUpdateBiases[i] + (1-net.momentumConst)*update*update;
+                    net.Nodes[i].bias-= update;
+                    BiasChanges[i] = 0;
+                }
+                for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
+                    update = net.adjustRate*sqrt(net.parameterUpdateBiases[NODE] + net.adagradConst)*BiasChanges[NODE]/sqrt(updateVectorBiases[NODE]+adagradConst);
+                    net.parameterUpdateBiases[NODE] = net.momentumConst * net.parameterUpdateBiases[NODE] + (1-net.momentumConst)*update*update;
+                    net.Nodes[NODE].bias -= update;
+                    BiasChanges[NODE] = 0;
+                    for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
+                        update = net.adjustRate*sqrt(net.parameterUpdateWeights[NODE][i] + net.adagradConst)*WeightChanges[NODE][i]/sqrt(net.updateVectorWeights[NODE][i] + adagradConst);
+                        net.parameterUpdateWeights[NODE][i] = net.momentumConst*net.parameterUpdateWeights[NODE][i] + (1-net.momentumConst)*update*update;
+                        net.Nodes[NODE].inWeights[i] -= update;
+                        WeightChanges[NODE][i] = 0;
+                    }
+                }
+            }
+        }
+
+        // loads data point into network by point id
+        void loadValue(int _datapiece, NN& net){
+            net.datapiece = _datapiece;
+            for(int i = 0; i < net.NNL[0]; i++){
+                if(net.Nodes[i].isInput == true){
+                    net.Nodes[i].z = net.inVal[datapiece][i] + net.Nodes[i].bias*net.BiasMult;
+                    net.Nodes[i].a = Activation(net.Nodes[i].z, i);
+                }
+            }
+        }
+
+        // forward propagates one node
+        void parrallelActivation(NN& net, NN::Node& nod){
+            if(nod.isInput){ return; }
+            nod.z = net.BiasMult * nod.bias;
+            for(int i = 0; i < nod.numInNodes; i++){
+                nod.z += nod.inWeights[i] * net.Nodes[i + nod.inNodes[0]].a;
+            }
+        }
+        
+        //forward props network, single threaded
+        void ForwardProp(NN& net){
+            int prevlayer = 0;
+            for(int NODE = 0; NODE < net.Nodes.size(); NODE++){
+                if(net.Nodes[NODE].layer!=prevlayer){
+                    prevlayer = net.Nodes[NODE].layer;
+                    for(int i = net.layerStarts[prevlayer-1]; i < net.layerStarts[prevlayer]; i++){
+                        net.Nodes[i].a = net.Activation(net.Nodes[i].z, i);
+                    }
+                }
+                net.parrallelActivation(net, net.Nodes[NODE]);
+            }
+            net.maxoutput = 0;
+            for(int i = net.layerStarts[net.TL-1]; i < net.Nodes.size(); i++){
+                if(net.Nodes[i].z>=net.maxoutput){
+                    net.maxoutput = net.Nodes[i].z;
+                }
+            }
+            for(int i = net.layerStarts[net.TL-1]; i < net.Nodes.size(); i++){
+                net.Nodes[i].a = net.Activation(net.Nodes[i].z, i);
+            }
+        }
+
+        //Shuffles dataset
+        void DataShuffle(NN& net){
+            vector<vector<float>> in = net.inVal;
+            vector<vector<float>> out = net.outVal;
+            vector<int> ids;
+            for(int i = 0; i < in.size(); i++){ ids.push_back(i); }
+            std::random_device rd;
+            std::mt19937 g(rd());
+            std::shuffle(ids.begin(), ids.end(), g);
+            for(int i = 0; i < ids.size(); i++){
+                net.inVal[i] = in[ids[i]];
+                net.outVal[i] = out[ids[i]];
+            }
+        }
+
+
+        
 };
 
 
@@ -483,7 +525,8 @@ int main(){
     mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
     mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist-master/mnist-master/");
 
-    NN Network({1, 10, 10, 1}, "LeakyRelu", "mse", "sgd");
+    NN Network({1, 10, 10, 1}, "LeakyRelu", "mse", "adagrad");
+
     //Network.UpdateLayerActivation(Network, "Sigmoid", 3);
 
     // vector<vector<float>> inData;
@@ -512,7 +555,7 @@ int main(){
         Network.inVal.push_back({i});
         Network.outVal.push_back({(sin(i)+1)});
     }
-    Network.Train(Network, Network.inVal, Network.outVal, 32, 50, 0.01f);
+    Network.Train(Network, Network.inVal, Network.outVal, 32, 50, 0.1f);
 
     // vector<vector<float>> testingData;
     // vector<float> testingAnswers;
