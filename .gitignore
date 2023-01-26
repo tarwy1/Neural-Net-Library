@@ -25,6 +25,5 @@
 
 #stufd
 *.csv
-*.txt
 .vscode
 build
