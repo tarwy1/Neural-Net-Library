@@ -11,5 +11,8 @@ set(EXPORT_COMPILE_COMMANDS true)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED true)
 
-file(GLOB neuralnet *.cpp)
-add_executable(neuralnet ${neuralnet})
+add_library(neuralnet neuralnet/neuralnet.cpp)
+
+add_executable(main main.cpp)
+target_include_directories(main PUBLIC mnist-master/mnist-master/include)
+target_link_libraries(main neuralnet)
