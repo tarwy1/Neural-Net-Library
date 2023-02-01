@@ -11,6 +11,8 @@
 class NN{
     public:
         // activation functions and derivatives and inverses(for some)
+        float cosh(float x);
+        float sinh(float x);
         float Sigmoid(float x);
         float DSigmoid(float x);
         float Logit(float x);
@@ -27,6 +29,8 @@ class NN{
         float InverseActivation(float x);
 
         // loss functions and derivatives
+        float logcosh(float x, float intended);
+        float Dlogcosh(float x, float intended);
         float mse(float x, float intended);
         float Dmse(float x, float intended);
         float binarycrossentropy(float x, float intended);

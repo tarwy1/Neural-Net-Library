@@ -27,3 +27,4 @@
 *.csv
 .vscode
 build
+CMakeFiles

@@ -14,5 +14,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 add_library(neuralnet neuralnet/neuralnet.cpp)
 
 add_executable(main main.cpp)
-target_include_directories(main PUBLIC mnist-master/mnist-master/include)
+
 target_link_libraries(main neuralnet)

@@ -3,6 +3,8 @@
 using namespace std;
 
 // activation functions and derivatives and inverses(for some)
+float NN::cosh(float x){return (exp(x)+exp(-x))/2;}
+float NN::sinh(float x){return (exp(x)-exp(-x))/2;}
 float NN::Sigmoid(float x){ return 1/(1+exp(-x)); }
 float NN::DSigmoid(float x){ return Sigmoid(x) * (1-Sigmoid(x)); }
 float NN::Logit(float x){ return log(x/(1-x)); }
@@ -65,6 +67,12 @@ float NN::InverseActivation(float x){
 }
 
 // loss functions and derivatives
+float NN::logcosh(float x, float intended){
+    return (log(NN::cosh(x-intended)));
+}
+float NN::Dlogcosh(float x, float intended){
+    return (NN::sinh(x-intended)/NN::cosh(x-intended));
+}
 float NN::mse(float x, float intended){
     return ((intended - x) * (intended - x));
 }
@@ -80,11 +88,13 @@ float NN::Dbinarycrossentropy(float x, float intended){
 float NN::CostFunction(float x, float intended){
     if(CostFunctionNum==0){ return mse(x, intended); }
     else if(CostFunctionNum==1){ return binarycrossentropy(x, intended); }
+    else if(CostFunctionNum==2){ return logcosh(x, intended);}
     return 0;
 }
 float NN::DCostFunction(float x, float intended){
     if(CostFunctionNum==0){ return Dmse(x, intended); }
     else if(CostFunctionNum==1){ return Dbinarycrossentropy(x, intended); }
+    else if(CostFunctionNum==2){ return Dlogcosh(x, intended);}
     return 0;
 }
 
@@ -106,6 +116,7 @@ NN::NN(vector<int> _NNL, string _Function, string _CostFunctionStr, string _Opti
         else{ std::cout << "Invalid activation function inputted"; return; }
         if(CostFunctionStr=="mse"){ CostFunctionNum = 0;}
         else if(CostFunctionStr=="binary crossentropy"){ CostFunctionNum = 1;}
+        else if(CostFunctionStr=="logcosh"){ CostFunctionNum = 2; }
         else{ std::cout << "Invalid cost function inputted"; return; }
         if(OptimizerStr=="sgd"){ OptimizerNum = 0; }
         else if(OptimizerStr=="Msgd"){ OptimizerNum = 1; }
@@ -202,7 +213,7 @@ void NN::Train(NN& net, vector<vector<float>> InData, vector<vector<float>> OutD
     float avgcost = 0;
     // set adjust rate (adadelta does not use LR)
     net.adjustRate = LR/batch;
-    if(net.OptimizerNum==3){ net.adjustRate = 1/batch; }
+    if(net.OptimizerNum==3){ net.adjustRate = LR; }
     // id of first output node
     int firstOutput = net.Nodes[net.Nodes.size() - 1].inNodes[net.Nodes[net.Nodes.size()-1].inNodes.size() - 1] + 1;
     int numThreads;
