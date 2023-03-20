@@ -122,6 +122,7 @@ NN::NN(vector<int> _NNL, string _Function, string _CostFunctionStr, string _Opti
         else if(OptimizerStr=="Msgd"){ OptimizerNum = 1; }
         else if(OptimizerStr=="adagrad"){ OptimizerNum = 2; }
         else if(OptimizerStr=="adadelta"){ OptimizerNum = 3; }
+        else if(OptimizerStr=="adam"){ OptimizerNum = 4; }
         else{ std::cout << "Invalid optimizer inputted"; return; }
         for(int i = 0; i < TL; i++){
             LayerActivationStrings.push_back(Function);
@@ -410,6 +411,10 @@ void NN::UpdateParams(NN& net, vector<vector<float>> &WeightChanges, vector<floa
                 WeightChanges[NODE][i] = 0;
             }
         }
+    }
+    //adam
+    if(net.OptimizerNum==4){
+
     }
 }
 

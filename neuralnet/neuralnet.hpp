@@ -78,6 +78,8 @@ class NN{
         // lists used to track weighted averages for adagrad, delta etc
         std::vector<std::vector<float>> parameterUpdateWeights; 
         std::vector<float> parameterUpdateBiases;
+        float adamB1 = 0.9f;
+        float adamB2 = 0.999f;
 
         //network initializer, only ran without init true during backprop to allow thread creation
         NN(std::vector<int> _NNL, std::string _Function, std::string _CostFunctionStr, std::string _OptimizerStr, bool init = true);
