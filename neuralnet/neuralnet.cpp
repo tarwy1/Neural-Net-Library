@@ -214,7 +214,7 @@ void NN::Train(NN& net, vector<vector<float>> InData, vector<vector<float>> OutD
     float avgcost = 0;
     // set adjust rate (adadelta does not use LR)
     net.adjustRate = LR/batch;
-    if(net.OptimizerNum==3){ net.adjustRate = LR; }
+    if(net.OptimizerNum==3||net.OptimizerNum==4){ net.adjustRate = LR; }
     // id of first output node
     int firstOutput = net.Nodes[net.Nodes.size() - 1].inNodes[net.Nodes[net.Nodes.size()-1].inNodes.size() - 1] + 1;
     int numThreads;
@@ -276,11 +276,13 @@ void NN::Train(NN& net, vector<vector<float>> InData, vector<vector<float>> OutD
             changesBiases[NODE] += baseDerivatives[NODE] * BiasMult;
             if(net.OptimizerNum==2){ net.updateVectorBiases[NODE] += baseDerivatives[NODE] * BiasMult * baseDerivatives[NODE] * BiasMult; } 
             if(net.OptimizerNum==3){ net.updateVectorBiases[NODE] = net.momentumConst * net.updateVectorBiases[NODE] + (1-net.momentumConst)*baseDerivatives[NODE] * net.BiasMult * baseDerivatives[NODE] * net.BiasMult;}
+            if(net.OptimizerNum==4){ net.updateVectorBiases[NODE] = net.adamB1*net.updateVectorBiases[NODE] + (1-net.adamB1)*baseDerivatives[NODE] * net.BiasMult; net.parameterUpdateBiases[NODE] = net.adamB2*net.parameterUpdateBiases[NODE] + (1-net.adamB2)*baseDerivatives[NODE] * net.BiasMult*baseDerivatives[NODE] * net.BiasMult;}
             if(net1.Nodes[NODE].layer>0){
                 for(int i = 0; i < net1.Nodes[NODE].numInNodes; i++){
                     changesWeights[NODE][i] += baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a;
                     if(net.OptimizerNum==2){ net.updateVectorWeights[NODE][i] += baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a * baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a; } 
                     if(net.OptimizerNum==3){ net.updateVectorWeights[NODE][i] = net.momentumConst * net.updateVectorWeights[NODE][i] + (1-net.momentumConst) * baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a * baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a;}
+                    if(net.OptimizerNum==4){ net.updateVectorWeights[NODE][i] = net.adamB1 * net.updateVectorWeights[NODE][i] + (1-net.adamB1) * baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a; net.parameterUpdateWeights[NODE][i] = net.adamB2 * net.parameterUpdateWeights[NODE][i] + (1-net.adamB2) * baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a* baseDerivatives[NODE] * net1.Nodes[net1.Nodes[NODE].inNodes[i]].a;}
                 }
             }
         }
@@ -414,7 +416,22 @@ void NN::UpdateParams(NN& net, vector<vector<float>> &WeightChanges, vector<floa
     }
     //adam
     if(net.OptimizerNum==4){
-
+        float update;
+        for(int i = 0; i < net.NNL[0]; i++){
+            update = 0.0f;
+            net.Nodes[i].bias-= update;
+            BiasChanges[i] = 0;
+        }
+        for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
+            update = 0.0f;
+            net.Nodes[NODE].bias -= update;
+            BiasChanges[NODE] = 0;
+            for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
+                update = 0.0f;
+                net.Nodes[NODE].inWeights[i] -= update;
+                WeightChanges[NODE][i] = 0;
+            }
+        }
     }
 }
 
