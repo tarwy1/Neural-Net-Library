@@ -9,11 +9,11 @@ int main(){
 
     NN Network({1, 10, 10, 1}, "LeakyRelu", "logcosh", "adadelta");
 
-    for(float i = 0; i < 20; i += 0.0008){
+    for(float i = 0; i < 20; i += 0.001){
         Network.inVal.push_back({i});
         Network.outVal.push_back({(sin(i-10)+1)});
     }
-    Network.Train(Network, Network.inVal, Network.outVal, 1, 8, 1.0f);
+    Network.Train(Network, Network.inVal, Network.outVal, 1, 8, 0.001f);
 
     vector<float> TestingData;
     vector<float> TestingAnswers;

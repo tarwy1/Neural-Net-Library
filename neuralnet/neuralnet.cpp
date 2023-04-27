@@ -418,16 +418,16 @@ void NN::UpdateParams(NN& net, vector<vector<float>> &WeightChanges, vector<floa
     if(net.OptimizerNum==4){
         float update;
         for(int i = 0; i < net.NNL[0]; i++){
-            update = 0.0f;
+            update = net.adjustRate *((net.updateVectorBiases[i]/(1-net.adamB1))/(sqrt(net.parameterUpdateBiases[i]/(1-net.adamB2))+net.adagradConst));
             net.Nodes[i].bias-= update;
             BiasChanges[i] = 0;
         }
         for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
-            update = 0.0f;
+            update = net.adjustRate *((net.updateVectorBiases[NODE]/(1-net.adamB1))/(sqrt(net.parameterUpdateBiases[NODE]/(1-net.adamB2))+net.adagradConst));
             net.Nodes[NODE].bias -= update;
             BiasChanges[NODE] = 0;
             for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                update = 0.0f;
+                update = net.adjustRate *((net.updateVectorWeights[NODE][i]/(1-net.adamB1))/(sqrt(net.parameterUpdateWeights[NODE][i]/(1-net.adamB2))+net.adagradConst));;
                 net.Nodes[NODE].inWeights[i] -= update;
                 WeightChanges[NODE][i] = 0;
             }
