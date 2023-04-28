@@ -7,23 +7,23 @@ using namespace std;
 int main(){
     //example code using network to appproximate sin(x)+1 function in domain -10 < x < 10
 
-    NN Network({1, 10, 10, 1}, "LeakyRelu", "logcosh", "adadelta");
+    NN Network({1, 10, 10, 1}, "LeakyRelu", "logcosh", "adam");
 
-    for(float i = 0; i < 20; i += 0.001){
+    for(float i = 0; i < 5; i += 0.001){
         Network.inVal.push_back({i});
-        Network.outVal.push_back({(sin(i-10)+1)});
+        Network.outVal.push_back({(atan(exp(i)))});
     }
-    Network.Train(Network, Network.inVal, Network.outVal, 1, 8, 0.001f);
+    Network.Train(Network, Network.inVal, Network.outVal, 1, 30, 0.01f);
 
     vector<float> TestingData;
     vector<float> TestingAnswers;
     std::default_random_engine generator;
-    std::uniform_real_distribution<float> dist(0.0f, 20.0f);
+    std::uniform_real_distribution<float> dist(0.0f, 5.0f);
     for(int i = 0; i < 10000; i++){
         TestingData.push_back(dist(generator));
         float one = TestingData[i];
         //std::cout << TestingData[i] << " " << one << "\n";
-        TestingAnswers.push_back(sin(one-10)+1);
+        TestingAnswers.push_back(atan(exp(one)));
     }
 
     ofstream myfile;
