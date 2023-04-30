@@ -35,9 +35,10 @@ int main(){
     Network.inVal = inData;
     Network.outVal = outData;
     std::cout << "training\n";
+    ofstream myfile;
+    myfile.open ("outData.csv");
     for(int ep = 1; ep<20; ep++){
-        Network.Train(Network, Network.inVal, Network.outVal, 32, 1, 0.01f);
-
+        Network.Train(Network, Network.inVal, Network.outVal, 1, 1, 0.01f);
         vector<vector<float>> testingData;
         vector<float> testingAnswers;
         for(int i = 0; i < 10000; i++){
@@ -60,10 +61,11 @@ int main(){
                 totalRight++;
             }
         }
+        myfile << ep << ","<<  totalRight/100 << "\n";
         std::cout << totalRight/100 << "\n";
     }
 
 
-
+    myfile.close();
     return 0;
 }

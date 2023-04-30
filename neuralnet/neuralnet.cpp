@@ -416,18 +416,19 @@ void NN::UpdateParams(NN& net, vector<vector<float>> &WeightChanges, vector<floa
     }
     //adam
     if(net.OptimizerNum==4){
+        net.adamt+=1;
         float update;
         for(int i = 0; i < net.NNL[0]; i++){
-            update = net.adjustRate *((net.updateVectorBiases[i]/(1-net.adamB1))/(sqrt(net.parameterUpdateBiases[i]/(1-net.adamB2))+net.adagradConst));
+            update = net.adjustRate *((net.updateVectorBiases[i]/(1-pow(net.adamB1, net.adamt)))/(sqrt(net.parameterUpdateBiases[i]/(1-pow(net.adamB2, net.adamt)))+net.adagradConst));
             net.Nodes[i].bias-= update;
             BiasChanges[i] = 0;
         }
         for(int NODE = net.NNL[0]; NODE < net.Nodes.size(); NODE++){
-            update = net.adjustRate *((net.updateVectorBiases[NODE]/(1-net.adamB1))/(sqrt(net.parameterUpdateBiases[NODE]/(1-net.adamB2))+net.adagradConst));
+            update = net.adjustRate *((net.updateVectorBiases[NODE]/(1-pow(net.adamB1, net.adamt)))/(sqrt(net.parameterUpdateBiases[NODE]/(1-pow(net.adamB2, net.adamt)))+net.adagradConst));
             net.Nodes[NODE].bias -= update;
             BiasChanges[NODE] = 0;
             for(int i = 0; i < net.Nodes[NODE].numInNodes; i++){
-                update = net.adjustRate *((net.updateVectorWeights[NODE][i]/(1-net.adamB1))/(sqrt(net.parameterUpdateWeights[NODE][i]/(1-net.adamB2))+net.adagradConst));;
+                update = net.adjustRate *((net.updateVectorWeights[NODE][i]/(1-pow(net.adamB1, net.adamt)))/(sqrt(net.parameterUpdateWeights[NODE][i]/(1-pow(net.adamB2, net.adamt)))+net.adagradConst));;
                 net.Nodes[NODE].inWeights[i] -= update;
                 WeightChanges[NODE][i] = 0;
             }
