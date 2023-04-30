@@ -2,7 +2,7 @@
 
 using namespace std;
 
-// activation functions and derivatives and inverses(for some)
+// activation functions and derivatives and inverses(for some) D=derivative
 float NN::cosh(float x){return (exp(x)+exp(-x))/2;}
 float NN::sinh(float x){return (exp(x)-exp(-x))/2;}
 float NN::Sigmoid(float x){ return 1/(1+exp(-x)); }

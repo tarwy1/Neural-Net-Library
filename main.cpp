@@ -1,42 +1,69 @@
 
 #include "neuralnet/neuralnet.hpp"
+#include "./mnist/mnist_reader.hpp"
 #include <iostream>
 
 using namespace std;
 
 int main(){
-    //example code using network to appproximate sin(x)+1 function in domain -10 < x < 10
+    mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset =
+    mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist/");
 
-    NN Network({1, 10, 10, 1}, "LeakyRelu", "logcosh", "adam");
+    NN Network({784, 128, 128, 96, 64, 10}, "LeakyRelu", "binary crossentropy", "adam");
 
-    for(float i = 0; i < 5; i += 0.001){
-        Network.inVal.push_back({i});
-        Network.outVal.push_back({(atan(exp(i)))});
+    Network.UpdateLayerActivation(Network, "Sigmoid", 5);
+
+    vector<vector<float>> inData;
+    vector<vector<float>> outData;
+
+    for(int i = 0; i < 60000; i++){
+        inData.push_back({});
+        for(int j = 0; j < 784; j++){
+            inData[i].push_back(((float)dataset.training_images[i][j])/255);
+        }
+        outData.push_back({});
+        for(int j = 0; j < 10; j++){
+            if(j==(int)dataset.training_labels[i]){
+                outData[i].push_back(1.0f);
+            }
+            else{
+                outData[i].push_back(0.0f);
+            }
+        }
     }
-    Network.Train(Network, Network.inVal, Network.outVal, 1, 30, 0.01f);
 
-    vector<float> TestingData;
-    vector<float> TestingAnswers;
-    std::default_random_engine generator;
-    std::uniform_real_distribution<float> dist(0.0f, 5.0f);
-    for(int i = 0; i < 10000; i++){
-        TestingData.push_back(dist(generator));
-        float one = TestingData[i];
-        //std::cout << TestingData[i] << " " << one << "\n";
-        TestingAnswers.push_back(atan(exp(one)));
+    Network.inVal = inData;
+    Network.outVal = outData;
+    std::cout << "training\n";
+    for(int ep = 1; ep<20; ep++){
+        Network.Train(Network, Network.inVal, Network.outVal, 32, 1, 0.01f);
+
+        vector<vector<float>> testingData;
+        vector<float> testingAnswers;
+        for(int i = 0; i < 10000; i++){
+            testingData.push_back({});
+            for(int j = 0; j < 784; j++){
+                testingData[i].push_back((float)dataset.test_images[i][j]/255);
+            }
+            testingAnswers.push_back((int)dataset.test_labels[i]);
+        }
+        float totalRight = 0;
+        for(int i = 0; i < 10000; i++){
+            vector<float> prediction = Network.predict(Network, testingData[i]);
+            int maxindex = 0;
+            for(int i = 0; i < 10; i++){
+                if(prediction[i] >prediction[maxindex]){
+                    maxindex = i;
+                }
+            }
+            if((int)maxindex==(int)testingAnswers[i]){
+                totalRight++;
+            }
+        }
+        std::cout << totalRight/100 << "\n";
     }
 
-    ofstream myfile;
-    myfile.open ("outData.csv");
-    for(int i = 0; i < TestingData.size(); i++){
-        std::cout << TestingData[i] << " ";
-        std::cout << Network.predict(Network, {TestingData[i]})[0] << " ";
-        std::cout << TestingAnswers[i] << "\n";
-        myfile << TestingData[i] << ",";
-        myfile << Network.predict(Network, {TestingData[i]})[0] << ",";
-        myfile << TestingAnswers[i] << "\n";
-    }
-    myfile.close();
+
 
     return 0;
 }
