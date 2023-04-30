@@ -23,7 +23,8 @@
 *.app
 
 
-#stufd
+#stuff
+*.py
 *.csv
 .vscode
 build
