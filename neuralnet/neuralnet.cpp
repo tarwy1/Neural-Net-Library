@@ -615,10 +615,12 @@ NN NN::LoadNetwork(std::string filename, std::string path){
                 stringstream Word(word);
                 string word1;
                 while(getline(Word, word1, ' ')){
-                    if(wordcount>=returnNet.layerStarts[1] && wordcount < returnNet.Nodes.size()) {
-                        returnNet.Nodes[wordcount].inWeights[subwordcount] = stof(word1);
+                    if(std::find_if(word1.begin(), word1.end(), ::isdigit) != word1.end()){
+                        if(wordcount>=returnNet.layerStarts[1] && wordcount < returnNet.Nodes.size()) {
+                            returnNet.Nodes[wordcount].inWeights[subwordcount] = stof(word1);
+                        }
+                        subwordcount++;
                     }
-                    subwordcount++;
                 }
                 wordcount++;
             }
@@ -630,9 +632,11 @@ NN NN::LoadNetwork(std::string filename, std::string path){
                 stringstream Word(word);
                 string word1;
                 while(getline(Word, word1, ' ')){
-                    returnNet.updateVectorWeights[wordcount].push_back(0.0f);
-                    if(wordcount>=returnNet.layerStarts[1]&& wordcount < returnNet.Nodes.size()) returnNet.updateVectorWeights[wordcount][subwordcount] = stof(word1);
-                    subwordcount++;
+                    if(std::find_if(word1.begin(), word1.end(), ::isdigit) != word1.end()){
+                        returnNet.updateVectorWeights[wordcount].push_back(0.0f);
+                        if(wordcount>=returnNet.layerStarts[1]&& wordcount < returnNet.Nodes.size()) returnNet.updateVectorWeights[wordcount][subwordcount] = stof(word1);
+                        subwordcount++;
+                    }
                 }
                 wordcount++;
             }
@@ -644,9 +648,11 @@ NN NN::LoadNetwork(std::string filename, std::string path){
                 stringstream Word(word);
                 string word1;
                 while(getline(Word, word1, ' ')){
-                    returnNet.parameterUpdateWeights[wordcount].push_back(0.0f);
-                    if(wordcount>=returnNet.layerStarts[1]&& wordcount < returnNet.Nodes.size()) returnNet.parameterUpdateWeights[wordcount][subwordcount] = stof(word1);
-                    subwordcount++;
+                    if(std::find_if(word1.begin(), word1.end(), ::isdigit) != word1.end()){
+                        returnNet.parameterUpdateWeights[wordcount].push_back(0.0f);
+                        if(wordcount>=returnNet.layerStarts[1]&& wordcount < returnNet.Nodes.size()) returnNet.parameterUpdateWeights[wordcount][subwordcount] = stof(word1);
+                        subwordcount++;
+                    }
                 }
                 wordcount++;
             }

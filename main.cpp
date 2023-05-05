@@ -10,13 +10,13 @@ int main(){
     mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>("./mnist/");
     
     NN Network({784, 32, 16, 10}, "LeakyRelu", "binary crossentropy", "adam");
-    /*
+    
     Network.UpdateLayerActivation(Network, "Sigmoid", 3);
 
     vector<vector<float>> inData;
     vector<vector<float>> outData;
 
-    for(int i = 0; i < 100; i++){
+    for(int i = 0; i < 10000; i++){
         inData.push_back({});
         for(int j = 0; j < 784; j++){
             inData[i].push_back(((float)dataset.training_images[i][j])/255);
@@ -37,11 +37,11 @@ int main(){
     std::cout << "training\n";
     ofstream myfile;
     myfile.open ("outData.csv");
-    for(int ep = 1; ep<5; ep++){
-        Network.Train(Network, Network.inVal, Network.outVal, 1, 1, 0.01f);
+    for(int ep = 1; ep<20; ep++){
+        Network.Train(Network, Network.inVal, Network.outVal, 32, 1, 0.01f);
         vector<vector<float>> testingData;
         vector<float> testingAnswers;
-        for(int i = 0; i < 200; i++){
+        for(int i = 0; i < 10000; i++){
             testingData.push_back({});
             for(int j = 0; j < 784; j++){
                 testingData[i].push_back((float)dataset.test_images[i][j]/255);
@@ -49,7 +49,7 @@ int main(){
             testingAnswers.push_back((int)dataset.test_labels[i]);
         }
         float totalRight = 0;
-        for(int i = 0; i < 200; i++){
+        for(int i = 0; i < 10000; i++){
             vector<float> prediction = Network.predict(Network, testingData[i]);
             int maxindex = 0;
             for(int i = 0; i < 10; i++){
@@ -64,15 +64,15 @@ int main(){
         myfile << ep << ","<<  totalRight/100 << "\n";
         std::cout << totalRight/100 << "\n";
     }
-    Network.SaveNetwork(Network, "kekw.txt", "C:/Users/heado/Documents");
+    Network.SaveNetwork(Network, "kekw.txt", "C:/NN");
     
     myfile.close();
-    */
-    Network = Network.LoadNetwork("kekw.txt", "C:/Users/heado/Documents");
+    
+    Network = Network.LoadNetwork("kekw.txt", "C:/NN");
 
     vector<vector<float>> testingData;
     vector<float> testingAnswers;
-    for(int i = 0; i < 200; i++){
+    for(int i = 0; i < 10000; i++){
         testingData.push_back({});
         for(int j = 0; j < 784; j++){
             testingData[i].push_back((float)dataset.test_images[i][j]/255);
@@ -80,7 +80,7 @@ int main(){
         testingAnswers.push_back((int)dataset.test_labels[i]);
     }
     float totalRight = 0;
-    for(int i = 0; i < 200; i++){
+    for(int i = 0; i < 10000; i++){
         vector<float> prediction = Network.predict(Network, testingData[i]);
         int maxindex = 0;
         for(int i = 0; i < 10; i++){
