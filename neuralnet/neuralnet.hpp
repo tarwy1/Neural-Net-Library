@@ -7,6 +7,7 @@
 #include <ctime>
 #include <cmath>
 #include <thread>
+#include <sstream>
 
 class NN{
     public:
@@ -81,6 +82,7 @@ class NN{
         float adamB1 = 0.9f;
         float adamB2 = 0.999f;
         int adamt = 0;
+        int numEpochs = 0;
 
         //network initializer, only ran without init true during backprop to allow thread creation
         NN(std::vector<int> _NNL, std::string _Function, std::string _CostFunctionStr, std::string _OptimizerStr, bool init = true);
@@ -97,6 +99,13 @@ class NN{
         // train function for network, verbosity can be "verbose" or "silent"
         void Train(NN& net, std::vector<std::vector<float>> InData, std::vector<std::vector<float>> OutData, int batch, int epochs, float LR, std::string verbosity = "verbose");
     
+        // saves the network configuration and parameters to a file
+        void SaveNetwork(NN& net, std::string filename, std::string path);
+
+        // loads a network from the file
+        NN LoadNetwork(std::string filename, std::string path);
+
+
     private:
         // light network copy used during backprop
         void copyNet(NN& dest, NN& source);

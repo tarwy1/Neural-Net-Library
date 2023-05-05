@@ -150,6 +150,9 @@ NN::NN(vector<int> _NNL, string _Function, string _CostFunctionStr, string _Opti
                         }
                     }
                 }
+                else{
+                    nod.inWeights.push_back(0.0f);
+                }
                 nod.a = 0;
                 nod.z = 0;
                 nod.bias = 0;
@@ -290,6 +293,7 @@ void NN::Train(NN& net, vector<vector<float>> InData, vector<vector<float>> OutD
 
     // main train loop
     for(int epoch = 0; epoch < epochs; epoch++){
+        net.numEpochs++;
         // data is shuffled every epoch
         net.DataShuffle(net);
         vector<thread> threads;
@@ -315,7 +319,7 @@ void NN::Train(NN& net, vector<vector<float>> InData, vector<vector<float>> OutD
         }
 
         // calculate and print cost
-        std::cout << "cost: " << avgcost/net.inVal.size() << " Epoch: " << epoch << "\n";
+        std::cout << "cost: " << avgcost/net.inVal.size() << " Epoch: " << net.numEpochs << "\n";
         avgcost = 0;
     }
 }
@@ -492,4 +496,163 @@ void NN::DataShuffle(NN& net){
         net.inVal[i] = in[ids[i]];
         net.outVal[i] = out[ids[i]];
     }
+}
+
+// Saves network to a file
+void NN::SaveNetwork(NN& net, std::string filename, std::string path){
+    std::ofstream netFile;
+    netFile.open(path+"/"+filename);
+    netFile << net.TL << " ";
+    for(auto i : net.NNL){
+        netFile << i << " ";
+    }
+    netFile << "\n" << net.CostFunctionNum << " " << net.OptimizerNum << " " << net.BiasMult << " ";
+    for(auto i : net.LayerActivationNums){
+        netFile << i << " ";
+    }
+    netFile << "\n";
+    for(auto i : net.Nodes){
+        netFile << i.bias << " ";
+    }
+    netFile << "\n";
+    for(auto i : net.updateVectorBiases){
+        netFile << i << " ";
+    }
+    netFile << "\n";
+    for(auto i : net.parameterUpdateBiases){
+        netFile << i << " ";
+    }
+    netFile << "\n";
+    for(auto i : net.Nodes){
+        for(auto j : i.inWeights){
+            netFile << j << " ";
+        }
+        netFile << ",";
+    }
+    netFile << "\n";
+    for(auto i : net.updateVectorWeights){
+        for(auto j : i){
+            netFile << j << " ";
+        }
+        netFile << ",";
+    }
+    netFile << "\n";
+    for(auto i : net.parameterUpdateWeights){
+        for(auto j : i){
+            netFile << j << " ";
+        }
+        netFile << ",";
+    }
+    netFile.close();    
+}
+
+// Load a network from a file
+NN NN::LoadNetwork(std::string filename, std::string path){
+    NN returnNet({1, 1}, "Sigmoid", "mse", "adam");
+    int _TL = 0;
+    vector<int> _NNL;
+    int _costNum = 0;
+    int _optNum = 0;
+    vector<int> _layerAct;
+    float _biasmult;
+    fstream file;
+    file.open((path+"/"+filename), ios::in);
+    string line;
+    int linecount = 0;
+    while(getline(file, line)){
+        if(line[line.size()-1]==',' || line[line.size()-1]==' ') line[line.size()-1] = '\0';
+        string word;
+        stringstream Line(line);
+        int wordcount = 0;
+        if(linecount==0){
+            while(getline(Line, word, ' ')){
+                if(wordcount==0) _TL = stoi(word);
+                else{
+                    _NNL.push_back(stoi(word));
+                }
+                wordcount++;
+            }
+        }
+        else if(linecount==1){
+            while(getline(Line, word, ' ')){
+                
+                if(wordcount==0) _costNum = stoi(word);
+                else if(wordcount==1) _optNum = stoi(word);
+                else if(wordcount==2) _biasmult = stof(word);
+                else{
+                    _layerAct.push_back(stoi(word));
+                }
+                wordcount++;
+            }
+            returnNet = NN(_NNL, "Sigmoid", "mse", "adam");
+            returnNet.CostFunctionNum = _costNum;
+            returnNet.OptimizerNum = _optNum;
+            returnNet.LayerActivationNums = _layerAct;
+            returnNet.BiasMult = _biasmult;
+        }
+        else if(linecount==2){
+            while(getline(Line, word, ' ')){
+                returnNet.Nodes[wordcount].bias = stof(word);
+                wordcount++;
+            }
+        }
+        else if(linecount==3){
+            returnNet.updateVectorsInitialized = true;
+            while(getline(Line, word, ' ')){
+                returnNet.updateVectorBiases.push_back(stof(word));
+                wordcount++;
+            }
+        }
+        else if(linecount==4){
+            while(getline(Line, word, ' ')){
+                returnNet.parameterUpdateBiases.push_back(stof(word));
+                wordcount++;
+            }
+        }
+        else if(linecount==5){
+            while(getline(Line, word, ',')){
+                int subwordcount = 0;
+                stringstream Word(word);
+                string word1;
+                while(getline(Word, word1, ' ')){
+                    if(wordcount>=returnNet.layerStarts[1] && wordcount < returnNet.Nodes.size()) {
+                        returnNet.Nodes[wordcount].inWeights[subwordcount] = stof(word1);
+                    }
+                    subwordcount++;
+                }
+                wordcount++;
+            }
+        }
+        else if(linecount==6){
+            while(getline(Line, word, ',')){
+                returnNet.updateVectorWeights.push_back({});
+                int subwordcount = 0;
+                stringstream Word(word);
+                string word1;
+                while(getline(Word, word1, ' ')){
+                    returnNet.updateVectorWeights[wordcount].push_back(0.0f);
+                    if(wordcount>=returnNet.layerStarts[1]&& wordcount < returnNet.Nodes.size()) returnNet.updateVectorWeights[wordcount][subwordcount] = stof(word1);
+                    subwordcount++;
+                }
+                wordcount++;
+            }
+        }
+        else if(linecount==7){
+            while(getline(Line, word, ',')){
+                returnNet.parameterUpdateWeights.push_back({});
+                int subwordcount = 0;
+                stringstream Word(word);
+                string word1;
+                while(getline(Word, word1, ' ')){
+                    returnNet.parameterUpdateWeights[wordcount].push_back(0.0f);
+                    if(wordcount>=returnNet.layerStarts[1]&& wordcount < returnNet.Nodes.size()) returnNet.parameterUpdateWeights[wordcount][subwordcount] = stof(word1);
+                    subwordcount++;
+                }
+                wordcount++;
+            }
+        }
+        linecount++;
+    }
+    file.close();
+    return returnNet;
 }
