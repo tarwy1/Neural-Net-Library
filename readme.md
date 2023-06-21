@@ -37,7 +37,7 @@ The library allows for the creation, saving and loading of densely connected neu
 The activation function of each layer can be set as desired to any of the below functions.
 #### Sigmoid:
 Logistic activation function which maps the input between 0 and 1.\
-$$S(x) = \frac{1}{1-e^{-x}}$$
+$$S(x) = \frac{1}{1+e^{-x}}$$
 #### RELU:
 Rectified linear activation function. Defined by a piecewise function as shown below:
 $$f(x)=0  \quad for \quad x < 0$$
@@ -66,6 +66,10 @@ In my code, this is also implemented with a $1*10^{-8}$ term in both logs to pre
 #### Log-Cosh:
 This loss function is intended as a direct replacement or improvement on the MSE loss function, it aims to fix the tendency of MSE to bounce around a local minima with larger learning rates.
 $$loss(\vec{x}) = \sum_{i=0}^{N} log(cosh(x_i-y_i))$$
+### Optimizers:
+This library allows for the use of any of the below optimizers with both a variable batch size and learning rate, other hyperparameters such as the momentum decay constant can also be modified as public variables in the neural network class. For each of the following equations, $\theta =$ network parameters, η = learning rate.
+#### Stochastic Gradient Descent:
+This optimizer functions by constantly overshooting the local minima but overtime converging on it
 
 
 
