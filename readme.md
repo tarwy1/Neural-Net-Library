@@ -67,9 +67,47 @@ In my code, this is also implemented with a $1*10^{-8}$ term in both logs to pre
 This loss function is intended as a direct replacement or improvement on the MSE loss function, it aims to fix the tendency of MSE to bounce around a local minima with larger learning rates.
 $$loss(\vec{x}) = \sum_{i=0}^{N} log(cosh(x_i-y_i))$$
 ### Optimizers:
-This library allows for the use of any of the below optimizers with both a variable batch size and learning rate, other hyperparameters such as the momentum decay constant can also be modified as public variables in the neural network class. For each of the following equations, $\theta =$ network parameters, η = learning rate.
+This library allows for the use of any of the below optimizers with both a variable batch size and learning rate, other hyperparameters such as the momentum decay constant can also be modified as public variables in the neural network class. For each of the following equations, \
+$\theta =$ network parameters, η = learning rate, $L(\theta) =$ network loss as a function of $\theta$ and $\nabla_{\theta} L(\theta) =$ a partial derivative of the loss with respect to theta, for brevity this will sometimes be written $g_t$. \
+Most of the theory and equations for the optimizers used in my network were sourced from [this article](https://www.ruder.io/optimizing-gradient-descent/) on [ruder.io](https://www.ruder.io/) which proved to be one of the best resources I could find on optimizing gradient descent.
 #### Stochastic Gradient Descent:
-This optimizer functions by constantly overshooting the local minima but overtime converging on it
+This optimizer functions by constantly overshooting the local minima but overtime converging on it simply by taking finding the gradient of the loss w.r.t each parameter, multiplying it by the constant learning rate and subtracting from the parameter. This effectively moves the parameter in a direction so as to minimise the value of loss.
+$$\theta = \theta - η \cdot \nabla_{\theta} L(\theta)$$
+#### SGD Momentum:
+Momentum aims to counteract the tendency of SGD to struggle when approaching closely to local minima by first calculating an update vector $v_t$ which is dependant on the previous by a constant. This reduces the tendency of SGD to 'bounce from one side of the ravine to the other' if the local minima is thought of as a ravine.
+$$v_t = \gamma v_{t-1} + η \cdot \nabla_{\theta} L(\theta)$$
+$$\theta = \theta - v_t$$
+where $\gamma$ is a constant usually set to approximately 0.9.
+#### AdaGrad:
+This optimizer allows for the dynamic adjustment of the learning rate for each paramter, e.g. for a parameter which consistently has a large impact on the loss, smaller updates will be made and for parameters which have less impact on the loss, larger updates. This is done by keeping a sum of previous squared gradients and using it in the update rule as follows:
+$$G_t = \sum_{t=0}^{t} g_t^2$$
+$$\theta = \theta - \frac{η}{\sqrt{G_t + \epsilon}} \cdot g_t$$
+The main weakness of this optimizer however is the growing denominator in the update terms which is always increasing, this leads to quickly decaying gradients at which point the network effectively stagnates.
+#### AdaDelta
+AdaDelta is a modification built upon AdaGrad which seeks to relieve the decaying update vector problem by only keeping track of more recent past square gradients in the $G_t$ term. This is done not by storing n past gradients but by redifining $G_t$ as a decaying sum of past square gradients as follows:
+$$G_t = \gamma G_{t-1} + (1-\gamma) g_t^2$$
+Where $\gamma$ is a similar value to with momentum, approximately 0.9. \
+Adadelta differs from AdaGrad in the update rule aswell however. It also keeps a decaying sum of past square update vectors which can be called $E_t$ and is defined as follows:
+$$E_t = \gamma E_{t-1} + (1-\gamma) v_t^2$$
+Where $v_t$ stems from the update rule:
+$$\theta = \theta - v_t$$
+and is now defined as:
+$$v_t = \frac{\sqrt{E_{t-1} + \epsilon}}{\sqrt{G_t + \epsilon}} \cdot g_t$$
+Which although seems like a cyclic dependency given that $E_t$ relies on $v_t$ but this is fixed by using $E_{t-1}$ in the definition of $v_t$. \
+In full the update rule for AdaDelta is:
+$$\theta = \theta - \frac{\sqrt{E_{t-1} + \epsilon}}{\sqrt{G_t + \epsilon}} \cdot g_t$$
+As you can see, we have eliminated the learning rate from the equation entirely, with it being replaced by the decaying update vectors term.
+#### Adam:
+Adam or Adaptive Moment Estimation works similarly to AdaDelta in that it also keeps a decaying sum of past squared gradients $G_t$ but it differs by also keeping a decaying sum of average past gradients $M_t$ as follows:
+$$M_t = \beta_1 M_{t-1} + (1-\beta_1) g_t $$
+$$G_t = \beta_2 G_{t-1} + (1-\beta_2) g_t^2$$
+The authors of Adam however, noted that these decaying sums are biased towards zero and in order to relieve that bias, they calculate bias corrected sums $\hat{G_t}$ and $\hat{M_t}$
+$$\hat{M_t} = \frac{M_t}{1-\beta_1^t}$$
+$$\hat{G_t} = \frac{G_t}{1-\beta_2^t}$$
+Although it does not look like it (and this confused me for a long time... ) the t exponent on $\beta$ in the bias corrected sums is intentional and serves to force the adam update vector to continue to make significant changes even after many epochs. \
+We then get the final update rule for Adam as follows:
+$$\theta = \theta - \frac{η}{\sqrt{\hat{G_t}} + \epsilon} \cdot \hat{M_t} $$
+Where values of 0.9, 0.999 and $10^{-8}$ are typically used for $\beta_1$, $\beta_2$ and $\epsilon$ respectively.
 
 
 
