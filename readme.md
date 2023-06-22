@@ -25,9 +25,9 @@
 - [Using the Library](#using-the-library)
 
 # Project Overview:
-This project was intended as a proof of concept and as a learning opportunity for how neural networks function and how libraries such as [Tensorflow](https://www.tensorflow.org/) are made. The core component of this project is a library which can be imported that provides tools for the creating and use of densely connected neural networks. The library allows for the creation of networks of arbitrary size, number of layers, and with user selected parameters such as activation function and optimizer.\
+This project was intended as a proof of concept and as a learning opportunity for how neural networks function and how libraries such as [Tensorflow](https://www.tensorflow.org/) are made. The core component of this project is a library which can be imported that provides tools for the creating and use of densely connected neural networks. The library allows for the creation of networks of arbitrary size, number of layers, with user selected parameters such as activation function and optimizer.\
 \
-Throughout the development of this library, I found that online documentation of neural network functionality is lacking overall and as such, many elements of the design and core functionality of the library had to be theorised and developed from first principles without external help. \
+Throughout the development of this library, I found that online documentation of neural network functionality is lacking overall, as such, many elements of the design and core functionality of the library had to be theorised and developed from first principles without external help. \
 \
 All functional elements of the project were designed and programmed by me, with some assistance from [Th3T3chn0G1t](https://github.com/Th3T3chn0G1t) with converting the code into an importable library.
 
@@ -109,7 +109,7 @@ We then get the final update rule for Adam as follows:
 $$\theta = \theta - \frac{η}{\sqrt{\hat{G_t}} + \epsilon} \cdot \hat{M_t} $$
 Where values of 0.9, 0.999 and $10^{-8}$ are typically used for $\beta_1$, $\beta_2$ and $\epsilon$ respectively.
 # Functional Principles and Mathematics
-I based this neural network library on the commonly accepted and used structure for a densely connected neural network as shown:
+I based this neural network library on the commonly accepted and used structure for a densely connected neural network as shown: \
 <img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/7ded112c-941a-40d7-886d-28a77d29da37"  width="50%" height="50%"> \
 This basic model consists of an input layer, an output layer and one or more hidden layers. \
 In simple terms, each node is connected to every node in the next layer by a weight and the activation or value of each node can be computed by multiplying the activation of the node in the previous layer by the corrresponding weight connecting it. \
@@ -124,6 +124,13 @@ The weights are randomly initialized using a general rule and are then updated b
 The derivative of that loss function is the found with respect to each parameter in the network (weights and biases) and is used to update the weights according to an update rule or 'optimizer'. \
 The next sample can then be propagated through the network and the process repeats. Over time this allows the network to 'learn' how to produce the desired output from an input.
 ## Overall Network Structure:
+Much of the network structure for example, how nodes are stored in code was based on some of the information in [this paper](https://www.researchgate.net/publication/341310964_GPU_Acceleration_of_Sparse_Neural_Networks) which describes a method of storing each node as a structure as shown: \
+<img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/b6aa97fd-ccdc-4bae-ab40-33b259875df3"  width="50%" height="50%"> \
+
+
+
+
+
 
 
 
