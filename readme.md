@@ -18,7 +18,7 @@
         - [AdaGrad](#adagrad)
         - [AdaDelta](#adadelta)
         - [Adam](#adam)
-- [Functional Principals and Mathematics](#functional-principals-and-mathematics)
+- [Functional Principles and Mathematics](#functional-principles-and-mathematics)
     - [Overall Network Structure](#overall-network-structure)
     - [Computing Backprop Derivatives](#computing-backprop-derivatives)
     - [CPU Multithreading](#cpu-multithreading)
@@ -108,6 +108,25 @@ Although it does not look like it (and this confused me for a long time... ) the
 We then get the final update rule for Adam as follows:
 $$\theta = \theta - \frac{η}{\sqrt{\hat{G_t}} + \epsilon} \cdot \hat{M_t} $$
 Where values of 0.9, 0.999 and $10^{-8}$ are typically used for $\beta_1$, $\beta_2$ and $\epsilon$ respectively.
+# Functional Principles and Mathematics
+I based this neural network library on the commonly accepted and used structure for a densely connected neural network as shown:
+<img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/7ded112c-941a-40d7-886d-28a77d29da37"  width="50%" height="50%"> \
+This basic model consists of an input layer, an output layer and one or more hidden layers. \
+In simple terms, each node is connected to every node in the next layer by a weight and the activation or value of each node can be computed by multiplying the activation of the node in the previous layer by the corrresponding weight connecting it. \
+Each node also has a bias which is added onto this weighted sum and an activation function which is applied to the sum of the weighted sum and bias to give the final activation of the node. This is represented mathematically below: 
+
+$$ z^L_n = \sum_{i=0}^i (w^L_{ni} \cdot a^{L-1}_i ) + B_n^L \cdot B_0$$ 
+
+$$ a^L_n = \sigma(z^L_n) $$ 
+
+Where $a^L_n$ is the activation of node n in layer L (output layer) after the activation function, $W^L_{ni}$ is the weight connecting node n in layer L to node i in layer L-1, $B^L_n$ is the bias of node n in layer L and $B_0$ is a universal constant used as a hyperparameter to adjust the influence of biases on the network (typically 1.0). \
+The weights are randomly initialized using a general rule and are then updated by forward propagating a data sample through the network by the above rule, then a cost or loss is calculated using a function of the intended output values and the value obtained from forward propagation, this cost effectively represents how inaccurate the network was for that sample. \
+The derivative of that loss function is the found with respect to each parameter in the network (weights and biases) and is used to update the weights according to an update rule or 'optimizer'. \
+The next sample can then be propagated through the network and the process repeats. Over time this allows the network to 'learn' how to produce the desired output from an input.
+## Overall Network Structure:
+
+
+
 
 
 
