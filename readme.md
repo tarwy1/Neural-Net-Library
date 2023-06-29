@@ -131,8 +131,15 @@ The derivative of that loss function is the found with respect to each parameter
 \
 The next sample can then be propagated through the network and the process repeats. Over time this allows the network to 'learn' how to produce the desired output from an input.
 ## Overall Network Structure:
-Much of the network structure for example, how nodes are stored in code was based on some of the information in [this paper](https://www.researchgate.net/publication/341310964_GPU_Acceleration_of_Sparse_Neural_Networks) which describes a method of storing each node as a structure as shown: \
+Much of the network structure for example, how nodes are stored in code was based on some of the information in [this paper](https://www.researchgate.net/publication/341310964_GPU_Acceleration_of_Sparse_Neural_Networks) which describes a method of storing each node as a structure as shown: 
+
 <img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/b6aa97fd-ccdc-4bae-ab40-33b259875df3"  width="50%" height="50%">
+
+Each node is a structure which contains its id, layer (input = 0), the number of nodes in the previous layer, a boolean for if the node is an input, a list of the ids of nodes in the previous layer, a list of weight values connecting to corresponding nodes in the previous layer, the two activation variables, and the bias value of the node. 
+
+When the train function is ran, the training data and labels are loading into the network, shuffled and then for each epoch, the dataset is reshuffled, the network is forward-propagated, back-propagated to find the loss derivatives w.r.t each parameter, and then each paramter is updated according to the update rule.
+
+
 
 
 
