@@ -69,6 +69,7 @@ $$loss(\vec{x}) = \sum_{i=0}^{N} log(cosh(x_i-y_i))$$
 ### Optimizers:
 This library allows for the use of any of the below optimizers with both a variable batch size and learning rate, other hyperparameters such as the momentum decay constant can also be modified as public variables in the neural network class. For each of the following equations, \
 $\theta =$ network parameters, η = learning rate, $L(\theta) =$ network loss as a function of $\theta$ and $\nabla_{\theta} L(\theta) =$ a partial derivative of the loss with respect to theta, for brevity this will sometimes be written $g_t$. \
+\
 Most of the theory and equations for the optimizers used in my network were sourced from [this article](https://www.ruder.io/optimizing-gradient-descent/) on [ruder.io](https://www.ruder.io/) which proved to be one of the best resources I could find on optimizing gradient descent.
 #### Stochastic Gradient Descent:
 This optimizer functions by constantly overshooting the local minima but overtime converging on it simply by taking finding the gradient of the loss w.r.t each parameter, multiplying it by the constant learning rate and subtracting from the parameter. This effectively moves the parameter in a direction so as to minimise the value of loss.
@@ -87,13 +88,14 @@ The main weakness of this optimizer however is the growing denominator in the up
 AdaDelta is a modification built upon AdaGrad which seeks to relieve the decaying update vector problem by only keeping track of more recent past square gradients in the $G_t$ term. This is done not by storing n past gradients but by redifining $G_t$ as a decaying sum of past square gradients as follows:
 $$G_t = \gamma G_{t-1} + (1-\gamma) g_t^2$$
 Where $\gamma$ is a similar value to with momentum, approximately 0.9. \
+\
 Adadelta differs from AdaGrad in the update rule aswell however. It also keeps a decaying sum of past square update vectors which can be called $E_t$ and is defined as follows:
 $$E_t = \gamma E_{t-1} + (1-\gamma) v_t^2$$
 Where $v_t$ stems from the update rule:
 $$\theta = \theta - v_t$$
 and is now defined as:
 $$v_t = \frac{\sqrt{E_{t-1} + \epsilon}}{\sqrt{G_t + \epsilon}} \cdot g_t$$
-Which although seems like a cyclic dependency given that $E_t$ relies on $v_t$ but this is fixed by using $E_{t-1}$ in the definition of $v_t$. \
+The cyclic dependency of $E_t$ on $v_t$ is fixed by using $E_{t-1}$ in the definition of $v_t$ as shown above.. \
 In full the update rule for AdaDelta is:
 $$\theta = \theta - \frac{\sqrt{E_{t-1} + \epsilon}}{\sqrt{G_t + \epsilon}} \cdot g_t$$
 As you can see, we have eliminated the learning rate from the equation entirely, with it being replaced by the decaying update vectors term.
@@ -112,7 +114,9 @@ Where values of 0.9, 0.999 and $10^{-8}$ are typically used for $\beta_1$, $\bet
 I based this neural network library on the commonly accepted and used structure for a densely connected neural network as shown: \
 <img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/7ded112c-941a-40d7-886d-28a77d29da37"  width="50%" height="50%"> \
 This basic model consists of an input layer, an output layer and one or more hidden layers. \
+\
 In simple terms, each node is connected to every node in the next layer by a weight and the activation or value of each node can be computed by multiplying the activation of the node in the previous layer by the corrresponding weight connecting it. \
+\
 Each node also has a bias which is added onto this weighted sum and an activation function which is applied to the sum of the weighted sum and bias to give the final activation of the node. This is represented mathematically below: 
 
 $$ z^L_n = \sum_{i=0}^i (w^L_{ni} \cdot a^{L-1}_i ) + B_n^L \cdot B_0$$ 
@@ -120,12 +124,15 @@ $$ z^L_n = \sum_{i=0}^i (w^L_{ni} \cdot a^{L-1}_i ) + B_n^L \cdot B_0$$
 $$ a^L_n = \sigma(z^L_n) $$ 
 
 Where $a^L_n$ is the activation of node n in layer L (output layer) after the activation function, $W^L_{ni}$ is the weight connecting node n in layer L to node i in layer L-1, $B^L_n$ is the bias of node n in layer L and $B_0$ is a universal constant used as a hyperparameter to adjust the influence of biases on the network (typically 1.0). \
+\
 The weights are randomly initialized using a general rule and are then updated by forward propagating a data sample through the network by the above rule, then a cost or loss is calculated using a function of the intended output values and the value obtained from forward propagation, this cost effectively represents how inaccurate the network was for that sample. \
+\
 The derivative of that loss function is the found with respect to each parameter in the network (weights and biases) and is used to update the weights according to an update rule or 'optimizer'. \
+\
 The next sample can then be propagated through the network and the process repeats. Over time this allows the network to 'learn' how to produce the desired output from an input.
 ## Overall Network Structure:
 Much of the network structure for example, how nodes are stored in code was based on some of the information in [this paper](https://www.researchgate.net/publication/341310964_GPU_Acceleration_of_Sparse_Neural_Networks) which describes a method of storing each node as a structure as shown: \
-<img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/b6aa97fd-ccdc-4bae-ab40-33b259875df3"  width="50%" height="50%"> \
+<img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/b6aa97fd-ccdc-4bae-ab40-33b259875df3"  width="50%" height="50%">
 
 
 
