@@ -2,6 +2,7 @@
 - [Table of contents](#table-of-contents)
 - [Project Overview](#project-overview)
 - [Using the Library](#using-the-library)
+   - [Creating a Network](#creating-a-network)
 - [Functional Principles and Mathematics](#functional-principles-and-mathematics)
     - [Overall Network Structure](#overall-network-structure)
     - [Computing Backprop Derivatives](#computing-backprop-derivatives)
@@ -32,7 +33,32 @@ Throughout the development of this library, I found that online documentation of
 All functional elements of the project were designed and programmed by me, with some assistance from [Th3T3chn0G1t](https://github.com/Th3T3chn0G1t) with converting the code into an importable library.
 
 # Using the Library:
+## Creating a Network:
+In order to create a Network with this module, simply create an instance of the NN class using the constructor:
+```
+NN(std::vector<int> _NNL, std::string _Function, std::string _CostFunctionStr, std::string _OptimizerStr, bool init = true);
+```
+Where: \
+The vector ```_NNL``` should contain the network structure, with each element being equal to the number of nodes in the corresponding layer and the first element corresponds to the input layer, the following is an example of ```_NNL``` corresponding to the network in [Functional Principles and Mathematics](#functional-principles-and-mathematics): \
+```_NNL = {3, 5, 4, 2}``` \
+The string ```_Function``` represents an activation function to be applied to all layers (This can then be changed on a per layer basis using another function), ```_Function``` can be any of the following: \
+[Sigmoid](#sigmoid) = "Sigmoid" \
+[RELU](#relu) = "Relu" \
+[Leaky RELU](#leaky-relu) = "LeakyRelu" \
+[Tanh](#tanh) = "Tanh" \
+N.B. setting ```_Function``` to "Softmax" will throw an error because this library only allows for softmax use in the output layer. \
 
+The string ```_CostFunctionStr``` represents the network cost function that can be any of the following: \
+[Mean Squared Error](#mean-squared-error) = "mse" \
+[Binary Cross entropy](#binary-cross-entropy) = "binary crossentropy" \
+[Log-Cosh](#log-cosh) = "logcosh" \
+
+The string ```_OptimizerStr``` represents the optimizer used by the network used during training, and can be any of the following: \
+[stochastic gradient descent](#stochastic-gradient-descent) = "sgd" \
+[SGD Momentum](#sgd-momentum) = "Msgd" \
+[AdaGrad](#adagrad) = "adagrad" \
+[AdaDelta](#adadelta) = "adadelta" \
+[Adam](#adam) = "adam" 
 # Functional Principles and Mathematics:
 I based this neural network library on the commonly accepted and used structure for a densely connected neural network as shown: \
 <img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/7ded112c-941a-40d7-886d-28a77d29da37"  width="50%" height="50%"> \
