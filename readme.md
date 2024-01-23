@@ -58,7 +58,8 @@ The string ```_OptimizerStr``` represents the optimizer used by the network used
 [SGD Momentum](#sgd-momentum) = "Msgd" \
 [AdaGrad](#adagrad) = "adagrad" \
 [AdaDelta](#adadelta) = "adadelta" \
-[Adam](#adam) = "adam" 
+[Adam](#adam) = "adam" \
+The boolean ```bool init = true``` tells the constructor to initialise values into every vector by default, this shouldn't ever need to be changed as a user and is mainly used by the functions used to save and load a network from a file.
 # Functional Principles and Mathematics:
 I based this neural network library on the commonly accepted and used structure for a densely connected neural network as shown: \
 <img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/7ded112c-941a-40d7-886d-28a77d29da37"  width="50%" height="50%"> \
