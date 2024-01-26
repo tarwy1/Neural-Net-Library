@@ -3,6 +3,9 @@
 - [Project Overview](#project-overview)
 - [Using the Library](#using-the-library)
    - [Creating a Network](#creating-a-network)
+   - [Main Network Functions](#main-network-functions)
+      - [Train Function](#train-function)
+      - [UpdateLayerActivation Function](#updatelayeractivation-function)
 - [Functional Principles and Mathematics](#functional-principles-and-mathematics)
     - [Overall Network Structure](#overall-network-structure)
     - [Computing Backprop Derivatives](#computing-backprop-derivatives)
@@ -59,7 +62,22 @@ The string ```_OptimizerStr``` represents the optimizer used by the network used
 [AdaGrad](#adagrad) = "adagrad" \
 [AdaDelta](#adadelta) = "adadelta" \
 [Adam](#adam) = "adam" \
-The boolean ```bool init = true``` tells the constructor to initialise values into every vector by default, this shouldn't ever need to be changed as a user and is mainly used by the functions used to save and load a network from a file.
+The boolean ```bool init = true``` tells the constructor to initialise values into every vector by default, this shouldn't ever need to be changed as a user and is mainly used by the functions used to save and load a network from a file. \
+An example network creation may then look like this:
+```NN test({3 ,5, 4, 2}, "LeakyRelu", "logcosh", "adam");```
+## Main Network Functions:
+### Train Function
+This is the primary function used for training the network and is defined as follows: \
+```void Train(NN& net, std::vector<std::vector<float>> InData, std::vector<std::vector<float>> OutData, int batch, int epochs, float LR, std::string verbosity = "verbose");``` \
+```NN& net``` is the Network you are training. \
+The two, 2-dimensional vectors ```InData``` and ```OutData``` are the training samples for the network with InData being the training data and OutData being the training labels. Each element in the outer list representing a data sample, and each element in the inner list representing the corresponding value of each node in the input/output layer. Keep in mind that even for a network with 1 output/input node, these vectors must be 2-dimensional. \
+```Batch = batch size, Epochs = the number of epochs to train for (can be 1), LR = learning rate, Verbosity = how much telemetry the training will output, either "verbose" or "silent"```
+### UpdateLayerActivation Function
+This function is the way to update the activation function on a per layer basis. \
+```void NN::UpdateLayerActivation(NN& net, string activation, int layer);``` \
+```NN& net``` is the network in question. \
+```string activation``` is the activation function you want to change to (as above in quotes). \
+And ```layer``` is the layer in question (with the input layer being index 0.
 # Functional Principles and Mathematics:
 I based this neural network library on the commonly accepted and used structure for a densely connected neural network as shown: \
 <img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/7ded112c-941a-40d7-886d-28a77d29da37"  width="50%" height="50%"> \
