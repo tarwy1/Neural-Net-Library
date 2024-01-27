@@ -10,8 +10,6 @@
       - [Save and Load Functions](#save-and-load-functions)
 - [Functional Principles and Mathematics](#functional-principles-and-mathematics)
     - [Overall Network Structure](#overall-network-structure)
-    - [Computing Backprop Derivatives](#computing-backprop-derivatives)
-    - [CPU Multithreading](#cpu-multithreading)
 - [Features](#features)
   - [Activation Functions](#activation-functions)
       - [Sigmoid](#sigmoid)
