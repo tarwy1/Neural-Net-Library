@@ -33,10 +33,10 @@ This project was intended as a proof of concept and as a learning opportunity fo
 \
 Throughout the development of this library, I found that online documentation of neural network functionality is lacking overall, as such, many elements of the design and core functionality of the library had to be theorised and developed from first principles without external help. \
 \
-All functional elements of the project were designed and programmed by me, with some assistance from [Th3T3chn0G1t](https://github.com/Th3T3chn0G1t) with converting the code into an importable library.
-
+All functional elements of the project were designed and programmed by me, with some assistance from [Th3T3chn0G1t](https://github.com/Th3T3chn0G1t) with converting the code into an importable library. 
 # Using the Library:
 ## Creating a Network:
+The NN class can be found in the neuralnet folder, in the cpp and hpp files. \
 In order to create a Network with this module, simply create an instance of the NN class using the constructor:
 ```
 NN(std::vector<int> _NNL, std::string _Function, std::string _CostFunctionStr, std::string _OptimizerStr, bool init = true);
