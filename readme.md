@@ -6,6 +6,8 @@
    - [Main Network Functions](#main-network-functions)
       - [Train Function](#train-function)
       - [UpdateLayerActivation Function](#updatelayeractivation-function)
+      - [Predict Function](#predict-function)
+      - [Save and Load Functions](#save-and-load-functions)
 - [Functional Principles and Mathematics](#functional-principles-and-mathematics)
     - [Overall Network Structure](#overall-network-structure)
     - [Computing Backprop Derivatives](#computing-backprop-derivatives)
@@ -66,18 +68,30 @@ The boolean ```bool init = true``` tells the constructor to initialise values in
 An example network creation may then look like this:
 ```NN test({3 ,5, 4, 2}, "LeakyRelu", "logcosh", "adam");```
 ## Main Network Functions:
-### Train Function
+### Train Function:
 This is the primary function used for training the network and is defined as follows: \
 ```void Train(NN& net, std::vector<std::vector<float>> InData, std::vector<std::vector<float>> OutData, int batch, int epochs, float LR, std::string verbosity = "verbose");``` \
 ```NN& net``` is the Network you are training. \
 The two, 2-dimensional vectors ```InData``` and ```OutData``` are the training samples for the network with InData being the training data and OutData being the training labels. Each element in the outer list representing a data sample, and each element in the inner list representing the corresponding value of each node in the input/output layer. Keep in mind that even for a network with 1 output/input node, these vectors must be 2-dimensional. \
 ```Batch = batch size, Epochs = the number of epochs to train for (can be 1), LR = learning rate, Verbosity = how much telemetry the training will output, either "verbose" or "silent"```
-### UpdateLayerActivation Function
+### UpdateLayerActivation Function:
 This function is the way to update the activation function on a per layer basis. \
 ```void NN::UpdateLayerActivation(NN& net, string activation, int layer);``` \
 ```NN& net``` is the network in question. \
 ```string activation``` is the activation function you want to change to (as above in quotes). \
 And ```layer``` is the layer in question (with the input layer being index 0.
+### Predict Function:
+This function takes input data, propagates it through the Network and then returns the values of the output nodes, essentially using the Network to make a prediction. \
+```std::vector<float> predict(NN& net, std::vector<float> Input);``` \
+```NN& net = Network in question```, ```Input = input data``` (must be inputted similarly to the [train](#train-function) function and returns a float vector of the output layer activations. \
+Similar to this function is ```PrintPrediction``` Which essentially does the same thing, but instead of returning the output values, it prints them to the console for convenience. \
+```void printPrediction(NN& net, std::vector<float> Input);```
+### Save and Load Functions
+These functions are used for saving and loading an Network from a file. \
+```void SaveNetwork(NN& net, std::string filename, std::string path);``` \
+This saves network ```NN& net``` to file ```filename``` at path ```path```  (filename can just be a .txt). \
+```NN LoadNetwork(std::string filename, std::string path);``` \
+Returns a Network contained in file ```filename``` at path ```path```.
 # Functional Principles and Mathematics:
 I based this neural network library on the commonly accepted and used structure for a densely connected neural network as shown: \
 <img src="https://github.com/tarwy1/Neural-Net-Library/assets/38536921/7ded112c-941a-40d7-886d-28a77d29da37"  width="50%" height="50%"> \
