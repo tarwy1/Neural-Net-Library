@@ -49,12 +49,12 @@ The string ```_Function``` represents an activation function to be applied to al
 [RELU](#relu) = "Relu" \
 [Leaky RELU](#leaky-relu) = "LeakyRelu" \
 [Tanh](#tanh) = "Tanh" \
-N.B. setting ```_Function``` to "Softmax" will throw an error because this library only allows for softmax use in the output layer. \
+N.B. setting ```_Function``` to "Softmax" will throw an error because this library only allows for softmax use in the output layer, see [UpdateLayerActivation Function](#updatelayeractivation-function).
 
 The string ```_CostFunctionStr``` represents the network cost function that can be any of the following: \
 [Mean Squared Error](#mean-squared-error) = "mse" \
 [Binary Cross entropy](#binary-cross-entropy) = "binary crossentropy" \
-[Log-Cosh](#log-cosh) = "logcosh" \
+[Log-Cosh](#log-cosh) = "logcosh" 
 
 The string ```_OptimizerStr``` represents the optimizer used by the network used during training, and can be any of the following: \
 [stochastic gradient descent](#stochastic-gradient-descent) = "sgd" \
@@ -77,7 +77,12 @@ This function is the way to update the activation function on a per layer basis.
 ```void NN::UpdateLayerActivation(NN& net, string activation, int layer);``` \
 ```NN& net``` is the network in question. \
 ```string activation``` is the activation function you want to change to (as above in quotes). \
-And ```layer``` is the layer in question (with the input layer being index 0.
+And ```layer``` is the layer in question (with the input layer being index 0. \
+[Sigmoid](#sigmoid) = "Sigmoid" \
+[RELU](#relu) = "Relu" \
+[Leaky RELU](#leaky-relu) = "LeakyRelu" \
+[Tanh](#tanh) = "Tanh" \
+[Softmax](#softmax) = Softmax"
 ### Predict Function:
 This function takes input data, propagates it through the Network and then returns the values of the output nodes, essentially using the Network to make a prediction. \
 ```std::vector<float> predict(NN& net, std::vector<float> Input);``` \
@@ -103,7 +108,7 @@ $$ z^L_n = \sum_{i=0}^i (w^L_{ni} \cdot a^{L-1}_i ) + B_n^L \cdot B_0$$
 
 $$ a^L_n = \sigma(z^L_n) $$ 
 
-Where $a^L_n$ is the activation of node n in layer L (output layer) after the activation function, $W^L_{ni}$ is the weight connecting node n in layer L to node i in layer L-1, $B^L_n$ is the bias of node n in layer L and $B_0$ is a universal constant used as a hyperparameter to adjust the influence of biases on the network (typically 1.0). \
+Where $a^L_n$ is the activation of node n in layer L (output layer) after the activation function, $w^L_{ni}$ is the weight connecting node n in layer L to node i in layer L-1, $B^L_n$ is the bias of node n in layer L and $B_0$ is a universal constant used as a hyperparameter to adjust the influence of biases on the network (typically 1.0). \
 \
 The weights are randomly initialized using a general rule and are then updated by forward propagating a data sample through the network by the above rule, then a cost or loss is calculated using a function of the intended output values and the value obtained from forward propagation, this cost effectively represents how inaccurate the network was for that sample. \
 \
